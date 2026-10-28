@@ -6,3 +6,57 @@ generator client {
 datasource db {
   provider = "mysql"
 }
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(50)
+  users User[]
+
+  @@map("role")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  roleId          Int
+  name            String    @db.VarChar(150)
+  phno            String?   @db.VarChar(30)
+  email           String    @unique @db.VarChar(254)
+  passwordHash    String    @map("password") @db.VarChar(255)
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamp(0)
+  frontIdImg      String?   @db.VarChar(2048)
+  backIdImg       String?   @db.VarChar(2048)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model PendingRegistration {
+  id             Int      @id @default(autoincrement())
+  name           String   @db.VarChar(150)
+  phno           String?  @db.VarChar(30)
+  email          String   @unique @db.VarChar(254)
+  passwordHash   String   @db.VarChar(255)
+  otpHash        String   @db.VarChar(255)
+  otpExpiresAt   DateTime @db.Timestamp(0)
+  attempts       Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([otpExpiresAt])
+  @@map("pending_registrations")
+}
+
+model Tournament {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(150)
+  description String?  @db.Text
+  startDate   DateTime @db.Date
+  endDate     DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tournaments")
+}

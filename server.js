@@ -1,20 +1,18 @@
 
+require('dotenv').config();
+
 const express = require('express');
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
-// Parse incoming JSON request bodies
 app.use(express.json());
+app.use('/api/auth', require('./src/modules/auth'));
 
-// Test route
 app.get('/', (req, res) => {
-    res.json({
-        message: 'Node.js API is running!'
-    });
+    res.json({ message: 'Node.js API is running!' });
 });
 
-// Get all users (temporary sample data)
 app.get('/api/users', (req, res) => {
     const users = [
         { id: 1, name: 'Aung Aung' },
@@ -27,7 +25,6 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-// Get one user by ID
 app.get('/api/users/:id', (req, res) => {
     const id = Number(req.params.id);
 
@@ -49,7 +46,25 @@ app.get('/api/users/:id', (req, res) => {
     });
 });
 
-// Start server
+app.use((error, req, res, next) => {
+    if (res.headersSent) {
+        return next(error);
+    }
+
+    if (error.statusCode) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message,
+        });
+    }
+
+    console.error('Unhandled request error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'An unexpected error occurred.',
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
