@@ -1,4 +1,4 @@
-const prisma = require('../../config/prisma');
+const prisma = require('../../shared/database/prisma');
 const RegisterUser = require('./application/use-cases/RegisterUser');
 const VerifyEmailOtp = require('./application/use-cases/VerifyEmailOtp');
 const LoginUser = require('./application/use-cases/LoginUser');

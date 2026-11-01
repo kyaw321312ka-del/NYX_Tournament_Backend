@@ -1,8 +1,9 @@
-class AuthError extends Error {
+const HttpError = require('../../../shared/errors/HttpError');
+
+class AuthError extends HttpError {
   constructor(statusCode, message) {
-    super(message);
+    super(statusCode, message);
     this.name = 'AuthError';
-    this.statusCode = statusCode;
   }
 }
 
