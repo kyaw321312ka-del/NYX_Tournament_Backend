@@ -1,4 +1,4 @@
-const AuthError = require('../AuthError');
+const AuthError = require('../../domain/errors/AuthError');
 const User = require('../../domain/entities/User');
 
 class LoginUser {

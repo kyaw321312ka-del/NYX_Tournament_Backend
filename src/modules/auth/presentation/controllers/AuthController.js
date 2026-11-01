@@ -1,4 +1,4 @@
-const AuthError = require('../../application/AuthError');
+const AuthError = require('../../domain/errors/AuthError');
 const User = require('../../domain/entities/User');
 
 function createAuthController({ registerUser, verifyEmailOtp, loginUser, authRepository }) {

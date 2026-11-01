@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const prisma = require('../../src/config/prisma');
+const prisma = require('../../src/shared/database/prisma');
 
 async function main() {
     const email = 'admin@gmail.com';

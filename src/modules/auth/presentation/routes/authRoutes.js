@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const AuthError = require('../../application/AuthError');
+const AuthError = require('../../domain/errors/AuthError');
 
 function validate(schema) {
   return (req, res, next) => {

@@ -1,4 +1,4 @@
-const AuthError = require('../../application/AuthError');
+const AuthError = require('../../domain/errors/AuthError');
 
 function createAuthenticate(tokenService) {
   return (req, res, next) => {

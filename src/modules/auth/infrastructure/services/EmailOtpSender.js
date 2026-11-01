@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const AuthError = require('../../application/AuthError');
+const AuthError = require('../../domain/errors/AuthError');
 
 class EmailOtpSender {
   async sendVerificationOtp(email, code) {

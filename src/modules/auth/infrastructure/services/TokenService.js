@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const AuthError = require('../../application/AuthError');
+const AuthError = require('../../domain/errors/AuthError');
 
 const TOKEN_ISSUER = 'nyx-tournament-backend';
 const TOKEN_AUDIENCE = 'nyx-tournament-api';

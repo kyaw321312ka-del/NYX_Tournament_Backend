@@ -1,4 +1,4 @@
-const HttpError = require('../../../shared/errors/HttpError');
+const HttpError = require('../../../../shared/errors/HttpError');
 
 class AuthError extends HttpError {
   constructor(statusCode, message) {

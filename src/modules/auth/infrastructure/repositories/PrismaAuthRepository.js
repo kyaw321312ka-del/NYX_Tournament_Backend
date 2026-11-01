@@ -1,8 +1,10 @@
 const PendingRegistration = require('../../domain/entities/PendingRegistration');
-const AuthError = require('../../application/AuthError');
+const AuthRepository = require('../../domain/repositories/AuthRepository');
+const AuthError = require('../../domain/errors/AuthError');
 
-class PrismaAuthRepository {
+class PrismaAuthRepository extends AuthRepository {
   constructor(prisma) {
+    super();
     this.prisma = prisma;
   }
 

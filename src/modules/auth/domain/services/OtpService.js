@@ -1,5 +1,5 @@
 const { createHmac, randomInt, timingSafeEqual } = require('node:crypto');
-const AuthError = require('../../application/AuthError');
+const AuthError = require('../errors/AuthError');
 
 const OTP_LIFETIME_MS = 10 * 60 * 1000;
 

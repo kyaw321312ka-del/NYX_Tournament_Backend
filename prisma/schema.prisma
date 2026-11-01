@@ -6,6 +6,11 @@ datasource db {
   provider = "mysql"
 }
 
+enum PublicationStatus {
+  draft
+  published
+}
+
 model Role {
   id    Int    @id @default(autoincrement())
   name  String @unique @db.VarChar(50)
@@ -73,17 +78,18 @@ model UserCategory {
 }
 
 model Tournament {
-  id                Int      @id @default(autoincrement())
-  createdBy         Int      @map("created_by")
-  title             String   @db.VarChar(200)
-  entryFee          Decimal  @default(0) @map("entry_fee") @db.Decimal(12, 2)
-  bannerUrl         String?  @map("banner_url") @db.VarChar(2048)
-  description       String?  @db.VarChar(500)
-  startDate         DateTime @map("start_date") @db.Date
-  endDate           DateTime @map("end_date") @db.Date
-  rankingPointsPool Int      @default(0) @map("ranking_points_pool")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                Int               @id @default(autoincrement())
+  createdBy         Int               @map("created_by")
+  title             String            @db.VarChar(200)
+  entryFee          Decimal           @default(0) @map("entry_fee") @db.Decimal(12, 2)
+  bannerUrl         String?           @map("banner_url") @db.VarChar(2048)
+  description       String?           @db.VarChar(500)
+  startDate         DateTime          @map("start_date") @db.Date
+  endDate           DateTime          @map("end_date") @db.Date
+  rankingPointsPool Int               @default(0) @map("ranking_points_pool")
+  publicationStatus PublicationStatus @default(draft) @map("publication_status")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
 
   creator    User                 @relation(fields: [createdBy], references: [id], onDelete: Restrict)
   venues     TournamentVenue[]
