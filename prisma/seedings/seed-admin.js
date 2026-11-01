@@ -1,55 +1,82 @@
+require('dotenv').config();
+
 const bcrypt = require('bcryptjs');
 const prisma = require('../../src/shared/database/prisma');
 
-async function main() {
-    const email = 'admin@gmail.com';
-    const password = 'admin123';
+async function seedAdmin(database, env) {
+    const email = env.ADMIN_EMAIL?.trim().toLowerCase();
+    const password = env.ADMIN_PASSWORD;
+    const name = env.ADMIN_NAME?.trim() || 'NYX Administrator';
 
-    const adminRole = await prisma.role.findUnique({
-        where: { name: 'admin' },
-    });
-
-    if (!adminRole) {
-        throw new Error('Admin role does not exist.');
+    if (!email || !zodEmailIsValid(email)) {
+        throw new Error('Set ADMIN_EMAIL to a valid email address before seeding.');
     }
 
-    const existingUser = await prisma.user.findUnique({
-        where: { email },
-    });
+    if (!password || Buffer.byteLength(password, 'utf8') < 12 || Buffer.byteLength(password, 'utf8') > 72) {
+        throw new Error('ADMIN_PASSWORD must be between 12 and 72 bytes.');
+    }
 
-    if (existingUser) {
-        console.log('Admin account already exists.');
-        return;
+    if (name.length < 1 || name.length > 150) {
+        throw new Error('ADMIN_NAME must be between 1 and 150 characters.');
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const admin = await prisma.user.create({
-        data: {
-            name: 'NYX Administrator',
-            email,
-            passwordHash,
-            emailVerifiedAt: new Date(),
-            roleId: adminRole.id,
-        },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            role: {
-                select: { name: true },
-            },
-        },
-    });
+    return database.$transaction(async (transaction) => {
+        const role = await transaction.role.upsert({
+            where: { name: 'admin' },
+            create: { name: 'admin' },
+            update: {},
+        });
 
-    console.log('Admin account created:', admin);
+        const existingUser = await transaction.user.findUnique({
+            where: { email },
+            include: { role: true },
+        });
+
+        if (existingUser) {
+            if (existingUser.role.name !== 'admin') {
+                throw new Error('ADMIN_EMAIL already belongs to a non-admin account.');
+            }
+            return { created: false, user: existingUser };
+        }
+
+        const user = await transaction.user.create({
+            data: {
+                name,
+                email,
+                passwordHash,
+                emailVerifiedAt: new Date(),
+                roleId: role.id,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: { select: { name: true } },
+            },
+        });
+
+        return { created: true, user };
+    });
 }
 
-main()
-    .catch((error) => {
-        console.error('Failed to create admin:', error.message);
-        process.exitCode = 1;
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+function zodEmailIsValid(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
+}
+
+if (require.main === module) {
+    seedAdmin(prisma, process.env)
+        .then(({ created, user }) => {
+            console.log(created ? 'Admin account created:' : 'Admin account already exists:', user);
+        })
+        .catch((error) => {
+            console.error('Failed to seed admin:', error.message);
+            process.exitCode = 1;
+        })
+        .finally(async () => {
+            await prisma.$disconnect();
+        });
+}
+
+module.exports = seedAdmin;
