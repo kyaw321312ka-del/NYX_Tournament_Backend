@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "test": "node --test \"src/modules/**/*.test.js\" \"test/**/*.test.js\"",
     "seed:admin": "node prisma/seedings/seed-admin.js",
+    "seed:registration-statuses": "node prisma/seedings/seed-registration-statuses.js",
     "postinstall": "prisma skills sync || exit 0"
   },
   "keywords": [],
