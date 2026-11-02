@@ -45,4 +45,9 @@ after 48 hours. The tournament must be published, the category open, and
 neither player may already be registered or have another pending partner
 invitation in the category.
 
+For local Bruno testing, configure `ADMIN_EMAIL` for an existing admin account
+and run `npm run seed:registration-tournament`. This creates or reuses the
+published `NYX Registration Test Open 2027` tournament with open singles,
+doubles, and mixed-doubles categories, and prints their IDs.
+
 Apply the database migration with `npx prisma migrate deploy`.
