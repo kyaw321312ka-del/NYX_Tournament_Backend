@@ -49,3 +49,35 @@ test('returns not found when the authenticated user does not exist', async () =>
         (error) => error.statusCode === 404,
     );
 });
+
+test('updates only the submitted identity document columns and returns replaced filenames', async () => {
+    let updateArgs;
+    const prisma = {
+        $transaction: async (callback) => callback({
+            user: {
+                findUnique: async () => ({
+                    id: 7,
+                    frontIdImg: 'old-front.jpg',
+                    backIdImg: 'old-back.jpg',
+                }),
+                update: async (args) => {
+                    updateArgs = args;
+                    return {
+                        id: 7,
+                        name: 'Player',
+                        email: 'player@example.com',
+                        frontIdImg: args.data.frontIdImg ?? 'old-front.jpg',
+                        backIdImg: 'old-back.jpg',
+                    };
+                },
+            },
+        }),
+    };
+    const repository = new PrismaUserRepository(prisma);
+
+    const result = await repository.updateIdentityDocuments(7, { frontIdImg: 'new-front.jpg' });
+
+    assert.deepEqual(updateArgs.data, { frontIdImg: 'new-front.jpg' });
+    assert.equal(result.previousDocuments.frontIdImg, 'old-front.jpg');
+    assert.equal(result.previousDocuments.backIdImg, null);
+});

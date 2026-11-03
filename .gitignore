@@ -24,6 +24,10 @@ coverage/
 # Uploaded player profile images
 /uploads/player-profiles/*
 !/uploads/player-profiles/.gitkeep
+/uploads/identity-documents/*
+!/uploads/identity-documents/.gitkeep
+/uploads/tournament-banners/*
+!/uploads/tournament-banners/.gitkeep
 
 # Prisma-generated agent skills
 .agents/

@@ -138,6 +138,40 @@ class PrismaTournamentRepository extends TournamentRepository {
         return Tournament.fromRecord(record);
     }
 
+    async updateBannerOwned(id, userId, bannerUrl) {
+        const tournamentId = Number(id);
+        const ownerId = Number(userId);
+
+        return this.prisma.$transaction(async (transaction) => {
+            const existing = await transaction.tournament.findFirst({
+                where: { id: tournamentId, createdBy: ownerId },
+                select: {
+                    id: true,
+                    publicationStatus: true,
+                    bannerUrl: true,
+                },
+            });
+
+            if (!existing) {
+                throw new TournamentError(404, 'Tournament not found.');
+            }
+            if (existing.publicationStatus !== PublicationStatus.DRAFT) {
+                throw new TournamentError(409, 'Published tournaments cannot be edited.');
+            }
+
+            const record = await transaction.tournament.update({
+                where: { id: existing.id },
+                data: { bannerUrl },
+                include: tournamentInclude,
+            });
+
+            return {
+                tournament: Tournament.fromRecord(record),
+                previousBannerUrl: existing.bannerUrl,
+            };
+        });
+    }
+
     async publishOwned(id, userId) {
         const existing = await this.prisma.tournament.findUnique({
             where: { id },

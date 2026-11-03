@@ -34,6 +34,14 @@ app.use(
         maxAge: '1d',
     }),
 );
+app.use(
+    '/uploads/tournament-banners',
+    express.static(path.resolve(__dirname, '..', 'uploads', 'tournament-banners'), {
+        dotfiles: 'deny',
+        index: false,
+        maxAge: '1d',
+    }),
+);
 app.use('/api/auth', authModule.routes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/registrations', registrationRoutes);

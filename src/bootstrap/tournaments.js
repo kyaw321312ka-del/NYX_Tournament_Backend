@@ -5,6 +5,8 @@ const ListTournaments = require('../modules/tournaments/application/use-cases/Li
 const UpdateTournament = require('../modules/tournaments/application/use-cases/UpdateTournament');
 const PublishTournament = require('../modules/tournaments/application/use-cases/PublishTournament');
 const DeleteTournament = require('../modules/tournaments/application/use-cases/DeleteTournament');
+const UpdateTournamentBanner = require('../modules/tournaments/application/use-cases/UpdateTournamentBanner');
+const LocalTournamentBannerStorage = require('../modules/tournaments/infrastructure/services/LocalTournamentBannerStorage');
 const createTournamentController = require('../modules/tournaments/presentation/controllers/TournamentController');
 const createTournamentRouter = require('../modules/tournaments/presentation/routes/tournamentRoutes');
 const tournamentSchemas = require('../modules/tournaments/presentation/validators/tournamentSchemas');
@@ -18,6 +20,10 @@ function createTournamentModule({ prisma, authenticate }) {
         updateTournament: new UpdateTournament({ tournamentRepository }),
         publishTournament: new PublishTournament({ tournamentRepository }),
         deleteTournament: new DeleteTournament({ tournamentRepository }),
+        updateTournamentBanner: new UpdateTournamentBanner({
+            tournamentRepository,
+            bannerStorage: new LocalTournamentBannerStorage(),
+        }),
     });
 
     return createTournamentRouter({

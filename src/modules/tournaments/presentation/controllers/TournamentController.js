@@ -5,6 +5,7 @@ function createTournamentController({
     updateTournament,
     publishTournament,
     deleteTournament,
+    updateTournamentBanner,
 }) {
     return {
         async create(req, res, next) {
@@ -47,6 +48,19 @@ function createTournamentController({
                     req.validatedParams.id,
                     req.auth.userId,
                     req.validatedBody,
+                );
+                return res.status(200).json({ success: true, data: tournament.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async updateBanner(req, res, next) {
+            try {
+                const tournament = await updateTournamentBanner.execute(
+                    req.validatedParams.id,
+                    req.auth.userId,
+                    req.file,
                 );
                 return res.status(200).json({ success: true, data: tournament.toJSON() });
             } catch (error) {

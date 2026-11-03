@@ -46,4 +46,28 @@ function createUpdateProfileImageController(updatePlayerProfileImage) {
     };
 }
 
-module.exports = { listUsers, getUser, createUpdateProfileImageController };
+function createUpdateIdentityDocumentsController(updateIdentityDocuments) {
+    return async function updateIdentityDocumentsRequest(req, res, next) {
+        try {
+            const user = await updateIdentityDocuments.execute(req.auth.userId, req.files);
+            return res.status(200).json({
+                success: true,
+                data: {
+                    id: user.id,
+                    name: user.name,
+                    frontIdImgUploaded: Boolean(user.frontIdImg),
+                    backIdImgUploaded: Boolean(user.backIdImg),
+                },
+            });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
+module.exports = {
+    listUsers,
+    getUser,
+    createUpdateProfileImageController,
+    createUpdateIdentityDocumentsController,
+};
