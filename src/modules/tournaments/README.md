@@ -19,3 +19,11 @@ optional `pointTiers`.
 
 List queries accept `page` (default `1`) and `pageSize` (default `20`, maximum
 `100`). Apply migrations with `npm exec prisma -- migrate deploy`.
+
+## Player profile images
+
+Authenticated players can upload or replace their profile image with
+`PUT /api/users/me/profile-image`. Send `multipart/form-data` with a
+`profileImage` file field. JPEG, PNG, and WebP files up to 5 MB are accepted.
+The image is stored locally in `uploads/player-profiles`, and the user's
+`profileImageUrl` contains its public URL under `/uploads/player-profiles/`.

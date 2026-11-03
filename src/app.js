@@ -1,11 +1,12 @@
 require('dotenv').config();
 
 const express = require('express');
+const path = require('node:path');
 const prisma = require('./shared/database/prisma');
 const createAuthModule = require('./bootstrap/auth');
 const createTournamentModule = require('./bootstrap/tournaments');
 const createRegistrationModule = require('./bootstrap/registrations');
-const userRoutes = require('./modules/users/presentation/routes/userRoutes');
+const createUserModule = require('./bootstrap/users');
 const errorHandler = require('./shared/middleware/errorHandler');
 const notFound = require('./shared/middleware/notFound');
 
@@ -19,8 +20,20 @@ const registrationRoutes = createRegistrationModule({
     prisma,
     authenticate: authModule.authenticate,
 });
+const userRoutes = createUserModule({
+    prisma,
+    authenticate: authModule.authenticate,
+});
 
 app.use(express.json());
+app.use(
+    '/uploads/player-profiles',
+    express.static(path.resolve(__dirname, '..', 'uploads', 'player-profiles'), {
+        dotfiles: 'deny',
+        index: false,
+        maxAge: '1d',
+    }),
+);
 app.use('/api/auth', authModule.routes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/registrations', registrationRoutes);

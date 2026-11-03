@@ -8,6 +8,7 @@ const verifiedUser = {
   name: 'Player',
   email: 'player@example.com',
   phno: null,
+  profileImageUrl: '/uploads/player-profiles/player.jpg',
   passwordHash: 'stored-hash',
   emailVerifiedAt: new Date(),
   createdAt: new Date(),
@@ -28,6 +29,7 @@ test('login returns a token and safe user profile for verified credentials', asy
 
   assert.equal(result.token, 'access-token');
   assert.equal(result.user.email, 'player@example.com');
+  assert.equal(result.user.profileImageUrl, '/uploads/player-profiles/player.jpg');
   assert.equal('passwordHash' in result.user, false);
 });
 

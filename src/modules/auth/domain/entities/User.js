@@ -13,6 +13,7 @@ class User {
       name: this.name,
       email: this.email,
       phno: this.phno,
+      profileImageUrl: this.profileImageUrl,
       role: this.role.name,
       emailVerifiedAt: this.emailVerifiedAt,
       createdAt: this.createdAt,

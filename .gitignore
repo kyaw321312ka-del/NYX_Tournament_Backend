@@ -21,6 +21,10 @@ coverage/
 *.sqlite
 *.sqlite3
 
+# Uploaded player profile images
+/uploads/player-profiles/*
+!/uploads/player-profiles/.gitkeep
+
 # Prisma-generated agent skills
 .agents/
 .claude/

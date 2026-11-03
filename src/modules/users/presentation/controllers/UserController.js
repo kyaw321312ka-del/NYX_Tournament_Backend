@@ -27,4 +27,23 @@ function getUser(req, res) {
     });
 }
 
-module.exports = { listUsers, getUser };
+function createUpdateProfileImageController(updatePlayerProfileImage) {
+    return async function updateProfileImage(req, res, next) {
+        try {
+            const user = await updatePlayerProfileImage.execute(req.auth.userId, req.file);
+            return res.status(200).json({
+                success: true,
+                data: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    profileImageUrl: user.profileImageUrl,
+                },
+            });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
+module.exports = { listUsers, getUser, createUpdateProfileImageController };
