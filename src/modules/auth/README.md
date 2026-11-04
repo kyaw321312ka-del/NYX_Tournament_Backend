@@ -15,7 +15,15 @@ All routes are under `/api/auth`:
 | `POST` | `/login` | Sign in with a verified account and return a bearer token |
 | `GET` | `/me` | Return the current account; requires `Authorization: Bearer <token>` |
 
-Registration accepts `{ "name", "email", "password", "phno?" }`.
+Registration uses `multipart/form-data` with text fields `name`, `email`,
+`password`, and optional `phno`, plus required file fields `frontIdImg` and
+`backIdImg`. An optional `profileImage` file may also be included. Identity
+documents accept JPEG, PNG, or WebP up to 10 MB each; the profile image accepts
+the same formats up to 5 MB. Files are stored while the account is pending
+email verification, then their references are copied to the user account when
+the OTP is verified. Identity documents remain private; the profile image is
+publicly served.
+
 Verification accepts `{ "email", "otp" }`. Login accepts `{ "email",
 "password" }`. Passwords are bcrypt-hashed; verification codes are stored as
 keyed hashes, expire after ten minutes, and allow at most five attempts.

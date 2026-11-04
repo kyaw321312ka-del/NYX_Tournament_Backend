@@ -67,6 +67,9 @@ class PrismaAuthRepository extends AuthRepository {
           email: pending.email,
           passwordHash: pending.passwordHash,
           emailVerifiedAt: new Date(),
+          profileImageUrl: pending.profileImageUrl,
+          frontIdImg: pending.frontIdImg,
+          backIdImg: pending.backIdImg,
         },
         include: { role: true },
       });

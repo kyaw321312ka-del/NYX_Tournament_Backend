@@ -4,10 +4,18 @@ const User = require('../../domain/entities/User');
 const MAX_OTP_ATTEMPTS = 5;
 
 class VerifyEmailOtp {
-  constructor({ authRepository, otpService, tokenService }) {
+  constructor({
+    authRepository,
+    otpService,
+    tokenService,
+    profileImageStorage,
+    identityDocumentStorage,
+  }) {
     this.authRepository = authRepository;
     this.otpService = otpService;
     this.tokenService = tokenService;
+    this.profileImageStorage = profileImageStorage;
+    this.identityDocumentStorage = identityDocumentStorage;
   }
 
   async execute({ email, otp }) {
@@ -20,6 +28,7 @@ class VerifyEmailOtp {
 
     if (pending.otpExpiresAt <= new Date()) {
       await this.authRepository.deletePendingRegistration(pending.id);
+      await this.removePendingFiles(pending);
       throw new AuthError(400, 'The verification code has expired. Register again to request a new code.');
     }
 
@@ -47,6 +56,25 @@ class VerifyEmailOtp {
       token: this.tokenService.issue(user),
       user: user.toPublicProfile(),
     };
+  }
+
+  async removePendingFiles(pending) {
+    const removals = [];
+    if (pending.profileImageUrl) {
+      removals.push(this.profileImageStorage.remove(pending.profileImageUrl));
+    }
+    for (const filename of [pending.frontIdImg, pending.backIdImg]) {
+      if (filename) {
+        removals.push(this.identityDocumentStorage.remove(filename));
+      }
+    }
+
+    const results = await Promise.allSettled(removals);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error('Failed to clean up expired registration uploads:', result.reason);
+      }
+    }
   }
 }
 

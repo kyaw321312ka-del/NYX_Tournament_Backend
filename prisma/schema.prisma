@@ -67,15 +67,18 @@ model User {
 // ==========================================
 
 model PendingRegistration {
-  id           Int      @id @default(autoincrement())
-  name         String   @db.VarChar(150)
-  phno         String?  @db.VarChar(30)
-  email        String   @unique @db.VarChar(254)
-  passwordHash String   @db.VarChar(255)
-  otpHash      String   @db.VarChar(255)
-  otpExpiresAt DateTime @db.Timestamp(0)
-  attempts     Int      @default(0)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(150)
+  phno            String?  @db.VarChar(30)
+  email           String   @unique @db.VarChar(254)
+  passwordHash    String   @db.VarChar(255)
+  profileImageUrl String?  @map("profile_image_url") @db.VarChar(2048)
+  frontIdImg      String?  @db.VarChar(2048)
+  backIdImg       String?  @db.VarChar(2048)
+  otpHash         String   @db.VarChar(255)
+  otpExpiresAt    DateTime @db.Timestamp(0)
+  attempts        Int      @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
 
   @@index([otpExpiresAt])
   @@map("pending_registrations")

@@ -5,7 +5,7 @@ function createAuthController({ registerUser, verifyEmailOtp, loginUser, authRep
   return {
     async register(req, res, next) {
       try {
-        const result = await registerUser.execute(req.validatedBody);
+        const result = await registerUser.execute(req.validatedBody, req.files);
         return res.status(202).json({ success: true, data: result });
       } catch (error) {
         return next(error);
