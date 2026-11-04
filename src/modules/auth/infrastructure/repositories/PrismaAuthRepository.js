@@ -22,6 +22,21 @@ class PrismaAuthRepository extends AuthRepository {
     });
   }
 
+  async findCategoriesByIds(ids) {
+    return this.prisma.category.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+  }
+
+  async listPlayerCategories() {
+    return this.prisma.category.findMany({
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+  }
+
   async savePendingRegistration(data) {
     const record = await this.prisma.pendingRegistration.upsert({
       where: { email: data.email },
@@ -70,6 +85,11 @@ class PrismaAuthRepository extends AuthRepository {
           profileImageUrl: pending.profileImageUrl,
           frontIdImg: pending.frontIdImg,
           backIdImg: pending.backIdImg,
+          categories: {
+            create: (pending.categoryIds ?? []).map((categoryId) => ({
+              category: { connect: { id: categoryId } },
+            })),
+          },
         },
         include: { role: true },
       });

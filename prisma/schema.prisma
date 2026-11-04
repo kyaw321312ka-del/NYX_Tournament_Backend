@@ -75,6 +75,7 @@ model PendingRegistration {
   profileImageUrl String?  @map("profile_image_url") @db.VarChar(2048)
   frontIdImg      String?  @db.VarChar(2048)
   backIdImg       String?  @db.VarChar(2048)
+  categoryIds     Json?    @map("category_ids")
   otpHash         String   @db.VarChar(255)
   otpExpiresAt    DateTime @db.Timestamp(0)
   attempts        Int      @default(0)

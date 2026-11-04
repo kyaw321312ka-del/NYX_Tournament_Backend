@@ -30,6 +30,15 @@ function createAuthController({ registerUser, verifyEmailOtp, loginUser, authRep
       }
     },
 
+    async listCategories(req, res, next) {
+      try {
+        const categories = await authRepository.listPlayerCategories();
+        return res.status(200).json({ success: true, data: categories });
+      } catch (error) {
+        return next(error);
+      }
+    },
+
     async me(req, res, next) {
       try {
         const userRecord = await authRepository.findUserById(req.auth.userId);

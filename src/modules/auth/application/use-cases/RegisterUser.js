@@ -26,6 +26,11 @@ class RegisterUser {
       throw new AuthError(409, 'An account with this email already exists.');
     }
 
+    const categories = await this.authRepository.findCategoriesByIds(dto.categoryIds);
+    if (categories.length !== dto.categoryIds.length) {
+      throw new AuthError(400, 'One or more selected player categories are invalid.');
+    }
+
     const frontIdFile = files.frontIdImg?.[0];
     const backIdFile = files.backIdImg?.[0];
     const profileImageFile = files.profileImage?.[0];
@@ -54,6 +59,7 @@ class RegisterUser {
         profileImageUrl: storedFiles.profileImageUrl ?? null,
         frontIdImg: storedFiles.frontIdImg,
         backIdImg: storedFiles.backIdImg,
+        categoryIds: dto.categoryIds,
         otpHash: otp.hash,
         otpExpiresAt: otp.expiresAt,
       });

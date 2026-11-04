@@ -9,6 +9,13 @@ const passwordSchema = z.string()
 const emailSchema = z.string().trim().pipe(z.email().max(254, 'Email must be no longer than 254 characters.'))
   .transform((email) => email.trim().toLowerCase());
 
+const categoryIdsSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? [value] : value),
+  z.array(z.coerce.number().int().positive())
+    .min(1, 'Choose at least one player category.')
+    .max(5, 'Choose no more than 5 player categories.'),
+);
+
 const register = z.object({
   name: z.string().trim().min(1, 'Name is required.').max(150, 'Name must be no longer than 150 characters.'),
   phno: z.string().trim().max(30, 'Phone number must be no longer than 30 characters.')
@@ -16,6 +23,7 @@ const register = z.object({
     .transform((phone) => phone || null),
   email: emailSchema,
   password: passwordSchema,
+  categoryIds: categoryIdsSchema,
 });
 
 const verifyEmail = z.object({

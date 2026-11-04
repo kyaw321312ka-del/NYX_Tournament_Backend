@@ -7,6 +7,14 @@ class AuthRepository {
         throw new Error('AuthRepository.findUserById must be implemented');
     }
 
+    async listPlayerCategories() {
+        throw new Error('AuthRepository.listPlayerCategories must be implemented');
+    }
+
+    async findCategoriesByIds() {
+        throw new Error('AuthRepository.findCategoriesByIds must be implemented');
+    }
+
     async findPendingRegistration() {
         throw new Error('AuthRepository.findPendingRegistration must be implemented');
     }

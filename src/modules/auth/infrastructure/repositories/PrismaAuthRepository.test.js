@@ -13,6 +13,7 @@ test('email verification transfers pending image references to the new user', as
     profileImageUrl: '/uploads/player-profiles/profile.png',
     frontIdImg: 'front.jpg',
     backIdImg: 'back.jpg',
+    categoryIds: [2, 4],
   };
   const prisma = {
     $transaction: async (callback) => callback({
@@ -40,6 +41,12 @@ test('email verification transfers pending image references to the new user', as
   assert.equal(user.profileImageUrl, pending.profileImageUrl);
   assert.equal(user.frontIdImg, pending.frontIdImg);
   assert.equal(user.backIdImg, pending.backIdImg);
+  assert.deepEqual(calls[0][1].categories, {
+    create: [
+      { category: { connect: { id: 2 } } },
+      { category: { connect: { id: 4 } } },
+    ],
+  });
   assert.deepEqual(calls[0][1], {
     roleId: 2,
     name: pending.name,
@@ -50,6 +57,12 @@ test('email verification transfers pending image references to the new user', as
     profileImageUrl: pending.profileImageUrl,
     frontIdImg: pending.frontIdImg,
     backIdImg: pending.backIdImg,
+    categories: {
+      create: [
+        { category: { connect: { id: 2 } } },
+        { category: { connect: { id: 4 } } },
+      ],
+    },
   });
   assert.ok(calls[0][1].emailVerifiedAt instanceof Date);
   assert.deepEqual(calls[1][1], { where: { id: pending.id, attempts: { lt: 5 } } });

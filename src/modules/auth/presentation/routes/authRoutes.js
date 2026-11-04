@@ -80,6 +80,7 @@ function createAuthRouter({ controller, schemas, authenticate }) {
     validate(schemas.register),
     controller.register,
   );
+  router.get('/categories', controller.listCategories);
   router.post('/verify-email', createRateLimiter(10, 15 * 60 * 1000), validate(schemas.verifyEmail), controller.verifyEmail);
   router.post('/login', createRateLimiter(10, 15 * 60 * 1000), validate(schemas.login), controller.login);
   router.get('/me', authenticate, controller.me);

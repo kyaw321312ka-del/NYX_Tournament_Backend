@@ -14,6 +14,10 @@ function createRegisterUser({
       calls.push(['findUserByEmail', email]);
       return existingUser;
     },
+    findCategoriesByIds: async (ids) => {
+      calls.push(['findCategoriesByIds', ids]);
+      return ids.map((id) => ({ id, name: `Category ${id}` }));
+    },
     findPendingRegistration: async (email) => {
       calls.push(['findPendingRegistration', email]);
       return previousPending;
@@ -64,6 +68,7 @@ const input = {
   phno: '+959123456789',
   email: ' PLAYER@example.com ',
   password: 'a-strong-password',
+  categoryIds: [1, 2],
 };
 const files = {
   profileImage: [{ buffer: Buffer.from('profile') }],
@@ -93,8 +98,21 @@ test('stores uploaded image references with pending registration before OTP veri
   assert.equal(pending.profileImageUrl, '/uploads/player-profiles/new.png');
   assert.equal(pending.frontIdImg, 'front.jpg');
   assert.equal(pending.backIdImg, 'back.jpg');
+  assert.deepEqual(pending.categoryIds, [1, 2]);
   assert.equal(pending.passwordHash, 'password-hash');
   assert.equal(calls.some(([action]) => action === 'sendOtp'), true);
+});
+
+test('rejects invalid category selections before saving uploaded images', async () => {
+  const { useCase, calls } = createRegisterUser();
+  useCase.authRepository.findCategoriesByIds = async () => [];
+
+  await assert.rejects(useCase.execute(input, files), {
+    statusCode: 400,
+    message: 'One or more selected player categories are invalid.',
+  });
+  assert.equal(calls.some(([action]) => action === 'saveProfileImage'), false);
+  assert.equal(calls.some(([action]) => action === 'saveIdentityDocument'), false);
 });
 
 test('keeps the previous pending files until new files are saved, then removes replaced files', async () => {
