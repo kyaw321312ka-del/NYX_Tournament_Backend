@@ -5,7 +5,6 @@ const ListTournaments = require('../modules/tournaments/application/use-cases/Li
 const UpdateTournament = require('../modules/tournaments/application/use-cases/UpdateTournament');
 const PublishTournament = require('../modules/tournaments/application/use-cases/PublishTournament');
 const DeleteTournament = require('../modules/tournaments/application/use-cases/DeleteTournament');
-const UpdateTournamentBanner = require('../modules/tournaments/application/use-cases/UpdateTournamentBanner');
 const LocalTournamentBannerStorage = require('../modules/tournaments/infrastructure/services/LocalTournamentBannerStorage');
 const createTournamentController = require('../modules/tournaments/presentation/controllers/TournamentController');
 const createTournamentRouter = require('../modules/tournaments/presentation/routes/tournamentRoutes');
@@ -13,17 +12,14 @@ const tournamentSchemas = require('../modules/tournaments/presentation/validator
 
 function createTournamentModule({ prisma, authenticate }) {
     const tournamentRepository = new PrismaTournamentRepository(prisma);
+    const bannerStorage = new LocalTournamentBannerStorage();
     const controller = createTournamentController({
-        createTournament: new CreateTournament({ tournamentRepository }),
+        createTournament: new CreateTournament({ tournamentRepository, bannerStorage }),
         getTournament: new GetTournament({ tournamentRepository }),
         listTournaments: new ListTournaments({ tournamentRepository }),
-        updateTournament: new UpdateTournament({ tournamentRepository }),
+        updateTournament: new UpdateTournament({ tournamentRepository, bannerStorage }),
         publishTournament: new PublishTournament({ tournamentRepository }),
         deleteTournament: new DeleteTournament({ tournamentRepository }),
-        updateTournamentBanner: new UpdateTournamentBanner({
-            tournamentRepository,
-            bannerStorage: new LocalTournamentBannerStorage(),
-        }),
     });
 
     return createTournamentRouter({

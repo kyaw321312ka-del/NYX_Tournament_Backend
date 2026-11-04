@@ -8,7 +8,6 @@ All tournament routes are mounted at `/api/tournaments`.
 | `GET` | `/:id` | Get a published tournament; an authenticated owner may also view their draft |
 | `POST` | `/` | Create a draft tournament (bearer token required) |
 | `PUT` | `/:id` | Update an owned draft (bearer token required) |
-| `PUT` | `/:id/banner` | Upload or replace an owned draft's banner (bearer token required) |
 | `POST` | `/:id/publish` | Publish an owned draft (bearer token required) |
 | `DELETE` | `/:id` | Delete an owned tournament (bearer token required) |
 
@@ -18,11 +17,19 @@ and `categories`. A category accepts `pairingType` (`singles`, `doubles`, or
 `mixed_doubles`), `entryStatus` (`open`, `closing_soon`, or `closed`), and
 optional `pointTiers`.
 
-Upload or replace a banner with `PUT /api/tournaments/:id/banner`. Send
-`multipart/form-data` with a `banner` file field. JPEG, PNG, and WebP files up
-to 10 MB are accepted. The file is stored in `uploads/tournament-banners`, and
-the tournament's `bannerUrl` is set to its public URL under
-`/uploads/tournament-banners/`. Only draft tournaments can be edited.
+Create or update a tournament with its banner in the same request by sending
+`multipart/form-data` to `POST /api/tournaments` or `PUT
+/api/tournaments/:id`. Include a `tournament` text field containing the JSON
+request body, and optionally include a `banner` file field. JPEG, PNG, and WebP
+files up to 10 MB are accepted. The file is stored in
+`uploads/tournament-banners`, and `bannerUrl` is set to its public URL under
+`/uploads/tournament-banners/`. Existing JSON requests without a file remain
+supported. Only draft tournaments can be edited.
+
+In Bruno, choose **Body → Multipart Form**, add `tournament` as a text field
+containing the same JSON object used by the JSON API, then add `banner` as a
+file field. The `banner` field is optional. Do not manually set the multipart
+`Content-Type` header.
 
 List queries accept `page` (default `1`) and `pageSize` (default `20`, maximum
 `100`). Apply migrations with `npm exec prisma -- migrate deploy`.

@@ -87,6 +87,7 @@ class PrismaTournamentRepository extends TournamentRepository {
                 publicationStatus: true,
                 startDate: true,
                 endDate: true,
+                bannerUrl: true,
             },
         });
         if (!existing) {
@@ -129,47 +130,20 @@ class PrismaTournamentRepository extends TournamentRepository {
                     }) };
                 }
             }
-            return transaction.tournament.update({
+            const tournament = await transaction.tournament.update({
                 where: { id },
                 data: createData,
                 include: tournamentInclude,
             });
-        });
-        return Tournament.fromRecord(record);
-    }
-
-    async updateBannerOwned(id, userId, bannerUrl) {
-        const tournamentId = Number(id);
-        const ownerId = Number(userId);
-
-        return this.prisma.$transaction(async (transaction) => {
-            const existing = await transaction.tournament.findFirst({
-                where: { id: tournamentId, createdBy: ownerId },
-                select: {
-                    id: true,
-                    publicationStatus: true,
-                    bannerUrl: true,
-                },
-            });
-
-            if (!existing) {
-                throw new TournamentError(404, 'Tournament not found.');
-            }
-            if (existing.publicationStatus !== PublicationStatus.DRAFT) {
-                throw new TournamentError(409, 'Published tournaments cannot be edited.');
-            }
-
-            const record = await transaction.tournament.update({
-                where: { id: existing.id },
-                data: { bannerUrl },
-                include: tournamentInclude,
-            });
-
             return {
-                tournament: Tournament.fromRecord(record),
+                tournament,
                 previousBannerUrl: existing.bannerUrl,
             };
         });
+        return {
+            tournament: Tournament.fromRecord(record.tournament),
+            previousBannerUrl: record.previousBannerUrl,
+        };
     }
 
     async publishOwned(id, userId) {
