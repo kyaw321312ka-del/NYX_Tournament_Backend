@@ -65,6 +65,7 @@ function createRegisterUser({
 
 const input = {
   name: '  Test Player  ',
+  gender: 'female',
   phno: '+959123456789',
   email: ' PLAYER@example.com ',
   password: 'a-strong-password',
@@ -94,6 +95,7 @@ test('stores uploaded image references with pending registration before OTP veri
 
   assert.equal(result.email, 'player@example.com');
   assert.equal(pending.name, 'Test Player');
+  assert.equal(pending.gender, 'female');
   assert.equal(pending.email, 'player@example.com');
   assert.equal(pending.profileImageUrl, '/uploads/player-profiles/new.png');
   assert.equal(pending.frontIdImg, 'front.jpg');

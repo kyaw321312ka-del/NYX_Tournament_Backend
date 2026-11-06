@@ -6,6 +6,7 @@ const verifiedUser = {
   id: 7,
   roleId: 2,
   name: 'Player',
+  gender: 'female',
   email: 'player@example.com',
   phno: null,
   profileImageUrl: '/uploads/player-profiles/player.jpg',
@@ -29,6 +30,7 @@ test('login returns a token and safe user profile for verified credentials', asy
 
   assert.equal(result.token, 'access-token');
   assert.equal(result.user.email, 'player@example.com');
+  assert.equal(result.user.gender, 'female');
   assert.equal(result.user.profileImageUrl, '/uploads/player-profiles/player.jpg');
   assert.equal('passwordHash' in result.user, false);
 });

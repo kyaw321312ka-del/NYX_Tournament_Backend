@@ -5,6 +5,7 @@ const schemas = require('./authSchemas');
 test('registration normalizes email and trims name and phone', () => {
   const result = schemas.register.safeParse({
     name: '  Tournament Player ',
+    gender: 'Non-binary',
     phno: '  +1 555 123 4567 ',
     email: ' PLAYER@example.com ',
     password: 'correct horse battery staple',
@@ -14,11 +15,25 @@ test('registration normalizes email and trims name and phone', () => {
   assert.equal(result.success, true);
   assert.deepEqual(result.data, {
     name: 'Tournament Player',
+    gender: 'non_binary',
     phno: '+1 555 123 4567',
     email: 'player@example.com',
     password: 'correct horse battery staple',
     categoryIds: [1, 3],
   });
+});
+
+test('registration accepts supported gender values and rejects unknown values', () => {
+  const base = {
+    name: 'Player',
+    email: 'player@example.com',
+    password: 'correct horse battery staple',
+    categoryIds: ['1'],
+  };
+  for (const gender of ['Male', 'Female', 'Non-binary', 'Prefer not to say']) {
+    assert.equal(schemas.register.safeParse({ ...base, gender }).success, true);
+  }
+  assert.equal(schemas.register.safeParse({ ...base, gender: 'unknown' }).success, false);
 });
 
 test('registration rejects passwords that bcrypt would truncate', () => {

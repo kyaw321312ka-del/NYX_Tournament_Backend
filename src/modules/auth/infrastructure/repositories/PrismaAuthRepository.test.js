@@ -7,6 +7,7 @@ test('email verification transfers pending image references to the new user', as
   const pending = {
     id: 12,
     name: 'Test Player',
+    gender: 'female',
     phno: '+959123456789',
     email: 'player@example.com',
     passwordHash: 'password-hash',
@@ -50,6 +51,7 @@ test('email verification transfers pending image references to the new user', as
   assert.deepEqual(calls[0][1], {
     roleId: 2,
     name: pending.name,
+    gender: pending.gender,
     phno: pending.phno,
     email: pending.email,
     passwordHash: pending.passwordHash,

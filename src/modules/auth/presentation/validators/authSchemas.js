@@ -8,6 +8,12 @@ const passwordSchema = z.string()
 
 const emailSchema = z.string().trim().pipe(z.email().max(254, 'Email must be no longer than 254 characters.'))
   .transform((email) => email.trim().toLowerCase());
+const genderSchema = z.preprocess(
+  (value) => (typeof value === 'string'
+    ? value.trim().toLowerCase().replace(/[\s-]+/g, '_')
+    : value),
+  z.enum(['male', 'female', 'non_binary', 'prefer_not_to_say']).nullable().optional(),
+);
 
 const categoryIdsSchema = z.preprocess(
   (value) => (typeof value === 'string' ? [value] : value),
@@ -18,6 +24,7 @@ const categoryIdsSchema = z.preprocess(
 
 const register = z.object({
   name: z.string().trim().min(1, 'Name is required.').max(150, 'Name must be no longer than 150 characters.'),
+  gender: genderSchema,
   phno: z.string().trim().max(30, 'Phone number must be no longer than 30 characters.')
     .optional()
     .transform((phone) => phone || null),

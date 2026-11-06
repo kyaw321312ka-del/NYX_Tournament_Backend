@@ -11,6 +11,7 @@ class User {
     return {
       id: this.id,
       name: this.name,
+      gender: this.gender,
       email: this.email,
       phno: this.phno,
       profileImageUrl: this.profileImageUrl,
