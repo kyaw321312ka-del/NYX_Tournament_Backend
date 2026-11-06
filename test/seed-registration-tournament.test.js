@@ -74,11 +74,16 @@ test('creates and publishes a tournament with open singles, doubles, and mixed-d
     assert.equal(calls.tournamentCreates[0].createdBy, 1);
     assert.equal(calls.tournamentCreates[0].publicationStatus, 'published');
     assert.deepEqual(
-        calls.categoryUpserts.map(({ create }) => [create.categoryCode, create.pairingType, create.entryStatus]),
+        calls.categoryUpserts.map(({ create }) => [
+            create.categoryCode,
+            create.pairingType,
+            create.entryStatus,
+            create.entryFee,
+        ]),
         [
-            ['MS', 'singles', 'open'],
-            ['MD', 'doubles', 'open'],
-            ['XD', 'mixed_doubles', 'open'],
+            ['MS', 'singles', 'open', 10000],
+            ['MD', 'doubles', 'open', 20000],
+            ['XD', 'mixed_doubles', 'open', 20000],
         ],
     );
     assert.equal(result.id, 25);

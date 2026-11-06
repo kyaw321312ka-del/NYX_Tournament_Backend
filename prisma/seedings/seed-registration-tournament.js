@@ -7,16 +7,19 @@ const CATEGORIES = [
     {
         categoryCode: 'MS',
         categoryName: 'Men Singles',
+        entryFee: 10000,
         pairingType: 'singles',
     },
     {
         categoryCode: 'MD',
         categoryName: 'Men Doubles',
+        entryFee: 20000,
         pairingType: 'doubles',
     },
     {
         categoryCode: 'XD',
         categoryName: 'Mixed Doubles',
+        entryFee: 20000,
         pairingType: 'mixed_doubles',
     },
 ];
@@ -83,6 +86,7 @@ async function seedRegistrationTournament(database, env) {
                 },
                 update: {
                     categoryName: category.categoryName,
+                    entryFee: category.entryFee,
                     pairingType: category.pairingType,
                     entryStatus: 'open',
                 },

@@ -24,7 +24,6 @@ class PrismaTournamentRepository extends TournamentRepository {
             data: {
                 createdBy,
                 title: data.title,
-                entryFee: data.entryFee,
                 bannerUrl: data.bannerUrl,
                 description: data.description,
                 startDate: new Date(data.startDate),
@@ -103,7 +102,7 @@ class PrismaTournamentRepository extends TournamentRepository {
         }
 
         const scalarData = {};
-        for (const field of ['title', 'entryFee', 'bannerUrl', 'description', 'rankingPointsPool']) {
+        for (const field of ['title', 'bannerUrl', 'description', 'rankingPointsPool']) {
             if (data[field] !== undefined) {
                 scalarData[field] = data[field];
             }

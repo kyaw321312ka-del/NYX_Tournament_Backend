@@ -24,6 +24,7 @@ class Registration {
                 tournamentId: this.category.tournamentId,
                 categoryCode: this.category.categoryCode,
                 categoryName: this.category.categoryName,
+                entryFee: this.category.entryFee?.toString() ?? '0',
             } : null,
             creator: this.creator ? {
                 id: this.creator.id,

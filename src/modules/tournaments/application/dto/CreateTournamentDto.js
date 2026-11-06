@@ -1,7 +1,6 @@
 class CreateTournamentDto {
-    constructor({ title, entryFee = 0, bannerUrl = null, description = null, startDate, endDate, rankingPointsPool = 0, venues = [], rules = [], categories = [] }) {
+    constructor({ title, bannerUrl = null, description = null, startDate, endDate, rankingPointsPool = 0, venues = [], rules = [], categories = [] }) {
         this.title = title;
-        this.entryFee = entryFee;
         this.bannerUrl = bannerUrl;
         this.description = description;
         this.startDate = startDate;

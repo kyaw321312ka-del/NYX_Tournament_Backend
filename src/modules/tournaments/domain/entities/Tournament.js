@@ -12,7 +12,6 @@ class Tournament {
             id: this.id,
             createdBy: this.createdBy,
             title: this.title,
-            entryFee: this.entryFee?.toString() ?? '0',
             bannerUrl: this.bannerUrl,
             description: this.description,
             startDate: this.startDate,
@@ -29,6 +28,7 @@ class Tournament {
             rules: this.rules,
             categories: this.categories?.map((category) => ({
                 ...category,
+                entryFee: category.entryFee?.toString() ?? '0',
                 pointTiers: category.pointTiers,
             })),
         };

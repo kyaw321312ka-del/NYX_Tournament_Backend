@@ -11,11 +11,12 @@ All tournament routes are mounted at `/api/tournaments`.
 | `POST` | `/:id/publish` | Publish an owned draft (bearer token required) |
 | `DELETE` | `/:id` | Delete an owned tournament (bearer token required) |
 
-Creation accepts `title`, `startDate`, and `endDate`. Optional fields are
-`entryFee`, `bannerUrl`, `description`, `rankingPointsPool`, `venues`, `rules`,
-and `categories`. A category accepts `pairingType` (`singles`, `doubles`, or
-`mixed_doubles`), `entryStatus` (`open`, `closing_soon`, or `closed`), and
-optional `pointTiers`.
+Creation accepts `title`, `startDate`, and `endDate`. Optional tournament
+fields are `bannerUrl`, `description`, `rankingPointsPool`, `venues`, `rules`,
+and `categories`. Set `entryFee` on each category (it defaults to `0`), allowing
+singles and doubles events to have different prices. A category also accepts
+`pairingType` (`singles`, `doubles`, or `mixed_doubles`), `entryStatus` (`open`,
+`closing_soon`, or `closed`), and optional `pointTiers`.
 
 Create or update a tournament with its banner in the same request by sending
 `multipart/form-data` to `POST /api/tournaments` or `PUT

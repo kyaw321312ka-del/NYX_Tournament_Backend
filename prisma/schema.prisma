@@ -121,7 +121,6 @@ model Tournament {
   id                Int               @id @default(autoincrement())
   createdBy         Int               @map("created_by")
   title             String            @db.VarChar(200)
-  entryFee          Decimal           @default(0) @map("entry_fee") @db.Decimal(12, 2)
   bannerUrl         String?           @map("banner_url") @db.VarChar(2048)
   description       String?           @db.VarChar(500)
   startDate         DateTime          @map("start_date") @db.Date
@@ -186,6 +185,7 @@ model TournamentCategory {
   tournamentId        Int
   categoryCode        String   @map("category_code") @db.VarChar(30)
   categoryName        String   @map("category_name") @db.VarChar(150)
+  entryFee            Decimal  @default(0) @map("entry_fee") @db.Decimal(12, 2)
   pairingType         String   @map("pairing_type") @db.VarChar(30)
   seedCount           Int      @default(0) @map("seed_count")
   matchFormat         String   @map("match_format") @db.VarChar(100)
