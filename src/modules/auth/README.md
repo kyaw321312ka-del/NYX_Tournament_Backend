@@ -25,9 +25,8 @@ email verification, then their references are copied to the user account when
 the OTP is verified. Identity documents remain private; the profile image is
 publicly served.
 
-The required `gender` field accepts `male`, `female`, `non_binary`, or
-`prefer_not_to_say` (also accepts labels such as `Non-binary`). It is stored on
-the user profile and does not affect tournament-category registration.
+The required `gender` field accepts `male` or `female` (case-insensitive).
+Gender determines eligibility for gendered tournament categories.
 
 Verification accepts `{ "email", "otp" }`. Login accepts `{ "email",
 "password" }`. Passwords are bcrypt-hashed; verification codes are stored as

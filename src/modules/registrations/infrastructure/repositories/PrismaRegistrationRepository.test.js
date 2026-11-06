@@ -4,15 +4,19 @@ const PrismaRegistrationRepository = require('./PrismaRegistrationRepository');
 
 function createRepository({
     category = {
+        id: 3,
+        categoryCode: 'MS',
         entryStatus: 'open',
         pairingType: 'singles',
         tournament: { publicationStatus: 'published' },
     },
     duplicate = null,
     transactionError = null,
+    player = { id: 7, gender: 'male', emailVerifiedAt: new Date() },
 } = {}) {
     const calls = {
         category: [],
+        locks: [],
         duplicates: [],
         status: [],
         create: [],
@@ -24,10 +28,19 @@ function createRepository({
                 return category;
             },
         },
+        $queryRaw: async (strings, ...values) => {
+            const query = strings.join('?');
+            calls.locks.push({ query, values });
+            return [{ id: values[0] }];
+        },
+        user: {
+            findUnique: async () => player,
+        },
         tournamentRegistration: {
             findFirst: async (args) => {
                 calls.duplicates.push(args);
-                return duplicate;
+                const activeStatuses = args.where.status?.is?.name?.in ?? [];
+                return duplicate && activeStatuses.includes(duplicate.status) ? duplicate : null;
             },
             create: async (args) => {
                 calls.create.push(args);
@@ -87,6 +100,10 @@ test('creates a pending singles registration with the authenticated user as regi
     }]);
     assert.equal(calls.create[0].data.registeredBy, 7);
     assert.deepEqual(calls.status[0].where, { name: 'pending' });
+    assert.match(calls.locks[0].query, /FOR UPDATE/);
+    assert.deepEqual(calls.duplicates[0].where.status, {
+        is: { name: { in: ['pending', 'confirmed'] } },
+    });
 });
 
 test('maps database uniqueness conflicts to a registration conflict response', async () => {
@@ -103,6 +120,8 @@ test('maps database uniqueness conflicts to a registration conflict response', a
 test('requires a partner invitation rather than allowing a direct doubles registration', async () => {
     const { repository, calls } = createRepository({
         category: {
+            id: 3,
+            categoryCode: 'MD',
             entryStatus: 'open',
             pairingType: 'doubles',
             tournament: { publicationStatus: 'published' },
@@ -125,6 +144,8 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
         {
             name: 'unpublished tournament',
             category: {
+                id: 3,
+                categoryCode: 'MS',
                 entryStatus: 'open',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'draft' },
@@ -136,6 +157,8 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
         {
             name: 'closed category',
             category: {
+                id: 3,
+                categoryCode: 'MS',
                 entryStatus: 'closed',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'published' },
@@ -147,6 +170,8 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
         {
             name: 'singles registration with multiple players',
             category: {
+                id: 3,
+                categoryCode: 'MS',
                 entryStatus: 'open',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'published' },
@@ -158,6 +183,8 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
         {
             name: 'doubles category without accepted partner invitation',
             category: {
+                id: 3,
+                categoryCode: 'MD',
                 entryStatus: 'open',
                 pairingType: 'doubles',
                 tournament: { publicationStatus: 'published' },
@@ -169,11 +196,13 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
         {
             name: 'player already registered in the category',
             category: {
+                id: 3,
+                categoryCode: 'MS',
                 entryStatus: 'open',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'published' },
             },
-            duplicate: { id: 15 },
+            duplicate: { id: 15, status: 'pending' },
             members: [],
             statusCode: 409,
             message: /already registered/,
@@ -195,6 +224,24 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
 
             assert.equal(calls.create.length, 0);
             assert.equal(calls.status.length, 0);
+        });
+    }
+});
+
+test('allows re-entry after rejected or cancelled registrations', async (t) => {
+    for (const previousStatus of ['rejected', 'cancelled']) {
+        await t.test(previousStatus, async () => {
+            const { repository, calls } = createRepository({
+                duplicate: { id: 15, status: previousStatus },
+            });
+
+            const registration = await repository.create({
+                userId: 7,
+                tournamentCategoryId: 3,
+            });
+
+            assert.equal(registration.registeredBy, 7);
+            assert.equal(calls.create.length, 1);
         });
     }
 });

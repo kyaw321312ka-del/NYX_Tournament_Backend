@@ -64,7 +64,7 @@ test('refuses production seeding before opening a database transaction', async (
     assert.equal(calls.transactionCount, 0);
 });
 
-test('creates and publishes a tournament with open singles, doubles, and mixed-doubles categories', async () => {
+test('creates and publishes a tournament with all gender-eligible categories open', async () => {
     const { database, calls } = createDatabase();
     const result = await seedRegistrationTournament(database, {
         ADMIN_EMAIL: ' ADMIN@example.com ',
@@ -82,7 +82,9 @@ test('creates and publishes a tournament with open singles, doubles, and mixed-d
         ]),
         [
             ['MS', 'singles', 'open', 10000],
+            ['WS', 'singles', 'open', 10000],
             ['MD', 'doubles', 'open', 20000],
+            ['WD', 'doubles', 'open', 20000],
             ['XD', 'mixed_doubles', 'open', 20000],
         ],
     );

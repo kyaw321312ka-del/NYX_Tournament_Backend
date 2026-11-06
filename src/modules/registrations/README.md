@@ -5,6 +5,12 @@ bearer access token.
 
 ## Singles
 
+Category eligibility is determined by the category code: `MS` is one male
+player, `WS` one female player, `MD` two male players, `WD` two female players,
+and `XD` one male and one female player. Both accounts must be email-verified.
+New account registration accepts `male` or `female`; legacy gender values other
+than those are not eligible for these categories.
+
 `POST /api/registrations` creates a pending singles registration for the
 authenticated user:
 
@@ -45,10 +51,11 @@ after 48 hours. The tournament must be published, the category open, and
 neither player may already be registered or have another pending partner
 invitation in the category.
 
-Invitations use the existing `tournament_partner_invitations` table. A database
-unique constraint prevents a player from joining multiple registrations in the
-same category, including when concurrent requests pass the application-level
-duplicate check.
+Invitations use the existing `tournament_partner_invitations` table. Category
+row locking serializes registration attempts. A player may have at most one
+pending or confirmed registration per category; rejected and cancelled
+registrations do not block re-entry. A composite foreign key ensures each
+registration member's category matches its registration.
 
 For local Bruno testing, configure `ADMIN_EMAIL` for an existing admin account
 and run `npm run seed:registration-tournament`. This creates or reuses the
@@ -57,18 +64,21 @@ doubles, and mixed-doubles categories, and prints their IDs.
 
 Apply the database migration with `npx prisma migrate deploy`.
 
-Before deploying the category-participation constraint on a database with
-existing registrations, check for players already attached to multiple
-registrations in one category:
+To audit existing duplicate active memberships, run:
 
 ```sql
 SELECT registration.tournamentCategoryId, member.user_id, COUNT(*) AS registrations
 FROM tournament_registration_members AS member
 JOIN tournament_registrations AS registration
   ON registration.id = member.registration_id
+JOIN tournament_registration_statuses AS status
+  ON status.id = registration.statusId
+WHERE status.name IN ('pending', 'confirmed')
 GROUP BY registration.tournamentCategoryId, member.user_id
 HAVING COUNT(*) > 1;
 ```
 
-Resolve any returned rows before deployment; the migration intentionally
-preserves registration records rather than deleting duplicate membership data.
+Existing registration history is preserved. New registration and invitation
+acceptance requests check pending/confirmed registrations while holding a lock
+on the category row, so concurrent requests cannot claim the same category
+place.

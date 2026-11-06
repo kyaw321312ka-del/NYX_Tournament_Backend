@@ -4,10 +4,13 @@ const PartnerInvitation = require('../../domain/entities/PartnerInvitation');
 const RegistrationError = require('../../domain/errors/RegistrationError');
 const PairingType = require('../../../tournaments/domain/enums/PairingType');
 const RegistrationStatus = require('../../../tournaments/domain/enums/RegistrationStatus');
+const RegistrationEligibilityService = require('../../domain/services/RegistrationEligibilityService');
 
 const INVITATION_EXPIRY_HOURS = 48;
+const ACTIVE_REGISTRATION_STATUSES = ['pending', 'confirmed'];
 const DUPLICATE_PARTICIPATION_MESSAGE =
     'One or more players are already registered for this tournament category.';
+const eligibilityService = new RegistrationEligibilityService();
 const partnerInvitationInclude = {
     category: {
         include: {
@@ -17,12 +20,18 @@ const partnerInvitationInclude = {
         },
     },
     inviter: {
-        select: { id: true, name: true, email: true, emailVerifiedAt: true },
+        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true },
     },
     invitedUser: {
-        select: { id: true, name: true, email: true, emailVerifiedAt: true },
+        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true },
     },
 };
+
+async function lockTournamentCategory(transaction, categoryId) {
+    await transaction.$queryRaw`
+        SELECT id FROM tournament_categories WHERE id = ${categoryId} FOR UPDATE
+    `;
+}
 
 async function withParticipationConflictHandling(operation) {
     try {
@@ -53,6 +62,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             ...members.map((member) => Number(member)),
         ].filter((memberId) => Number.isInteger(memberId) && memberId > 0))];
         const registrationPromise = this.prisma.$transaction(async (transaction) => {
+            await lockTournamentCategory(transaction, categoryId);
             const category = await transaction.tournamentCategory.findUnique({
                 where: { id: categoryId },
                 include: {
@@ -65,14 +75,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             if (!category) {
                 throw new RegistrationError(404, 'Tournament category not found.');
             }
-
-            if (category.tournament.publicationStatus !== 'published') {
-                throw new RegistrationError(409, 'Tournament is not published and cannot accept registrations.');
-            }
-
-            if (category.entryStatus !== RegistrationStatus.OPEN) {
-                throw new RegistrationError(409, 'Tournament category is not open for registrations.');
-            }
+            eligibilityService.validateCategory(category);
 
             if (category.pairingType !== PairingType.SINGLES) {
                 throw new RegistrationError(
@@ -85,9 +88,16 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                 throw new RegistrationError(400, 'Singles registrations require exactly one player.');
             }
 
+            const player = await transaction.user.findUnique({
+                where: { id: ownerId },
+                select: { id: true, gender: true, emailVerifiedAt: true },
+            });
+            eligibilityService.validatePlayers(category, [player]);
+
             const duplicate = await transaction.tournamentRegistration.findFirst({
                 where: {
                     tournamentCategoryId: categoryId,
+                    status: { is: { name: { in: ACTIVE_REGISTRATION_STATUSES } } },
                     members: {
                         some: {
                             userId: { in: uniqueMemberIds },
@@ -99,8 +109,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
 
             if (duplicate) {
                 throw new RegistrationError(
-                    409,
-                    'One or more players are already registered for this tournament category.',
+                    409, DUPLICATE_PARTICIPATION_MESSAGE,
                 );
             }
 
@@ -151,6 +160,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
         const expiresAt = new Date(now.getTime() + INVITATION_EXPIRY_HOURS * 60 * 60 * 1000);
 
         const invitation = await this.prisma.$transaction(async (transaction) => {
+            await lockTournamentCategory(transaction, categoryId);
             const [category, inviter, invitedUser] = await Promise.all([
                 transaction.tournamentCategory.findUnique({
                     where: { id: categoryId },
@@ -188,6 +198,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             const existingRegistration = await transaction.tournamentRegistration.findFirst({
                 where: {
                     tournamentCategoryId: categoryId,
+                    status: { is: { name: { in: ACTIVE_REGISTRATION_STATUSES } } },
                     members: { some: { userId: { in: playerIds } } },
                 },
                 select: { id: true },
@@ -285,6 +296,17 @@ class PrismaRegistrationRepository extends RegistrationRepository {
         const id = Number(invitationId);
         const now = new Date();
         const resultPromise = this.prisma.$transaction(async (transaction) => {
+            const invitationRows = await transaction.$queryRaw`
+                SELECT tournamentCategoryId
+                FROM tournament_partner_invitations
+                WHERE id = ${id}
+                FOR UPDATE
+            `;
+            if (!invitationRows.length) {
+                throw new RegistrationError(404, 'Partner invitation not found.');
+            }
+            const categoryId = Number(invitationRows[0].tournamentCategoryId);
+            await lockTournamentCategory(transaction, categoryId);
             const invitation = await transaction.tournamentPartnerInvitation.findUnique({
                 where: { id },
                 include: {
@@ -315,25 +337,28 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                 return { expired: true };
             }
 
-            this.assertCategoryAcceptsRegistration(invitation.category);
-            if (!invitation.inviter.emailVerifiedAt || !invitation.invitedUser.emailVerifiedAt) {
-                throw new RegistrationError(409, 'Both players must have verified email addresses.');
+            const categoryRule = eligibilityService.validateCategory(invitation.category);
+            if (categoryRule.pairingType === PairingType.SINGLES) {
+                throw new RegistrationError(400, 'Partner invitations require a doubles category.');
             }
 
             const playerIds = [invitation.invitedBy, invitation.invitedUserId];
             const existingRegistration = await transaction.tournamentRegistration.findFirst({
                 where: {
                     tournamentCategoryId: invitation.tournamentCategoryId,
+                    status: { is: { name: { in: ACTIVE_REGISTRATION_STATUSES } } },
                     members: { some: { userId: { in: playerIds } } },
                 },
                 select: { id: true },
             });
             if (existingRegistration) {
-                throw new RegistrationError(
-                    409,
-                    'One or more players are already registered for this tournament category.',
-                );
+                throw new RegistrationError(409, DUPLICATE_PARTICIPATION_MESSAGE);
             }
+
+            eligibilityService.validatePlayers(invitation.category, [
+                invitation.inviter,
+                invitation.invitedUser,
+            ]);
 
             const otherPendingInvitation = await transaction.tournamentPartnerInvitation.findFirst({
                 where: {
@@ -476,13 +501,8 @@ class PrismaRegistrationRepository extends RegistrationRepository {
     }
 
     assertCategoryAcceptsRegistration(category) {
-        if (category.tournament.publicationStatus !== 'published') {
-            throw new RegistrationError(409, 'Tournament is not published and cannot accept registrations.');
-        }
-        if (category.entryStatus !== RegistrationStatus.OPEN) {
-            throw new RegistrationError(409, 'Tournament category is not open for registrations.');
-        }
-        if (![PairingType.DOUBLES, PairingType.MIXED_DOUBLES].includes(category.pairingType)) {
+        const rule = eligibilityService.validateCategory(category);
+        if (![PairingType.DOUBLES, PairingType.MIXED_DOUBLES].includes(rule.pairingType)) {
             throw new RegistrationError(400, 'Partner invitations are only available for doubles categories.');
         }
     }

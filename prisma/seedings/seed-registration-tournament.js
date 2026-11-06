@@ -11,8 +11,20 @@ const CATEGORIES = [
         pairingType: 'singles',
     },
     {
+        categoryCode: 'WS',
+        categoryName: 'Women Singles',
+        entryFee: 10000,
+        pairingType: 'singles',
+    },
+    {
         categoryCode: 'MD',
         categoryName: 'Men Doubles',
+        entryFee: 20000,
+        pairingType: 'doubles',
+    },
+    {
+        categoryCode: 'WD',
+        categoryName: 'Women Doubles',
         entryFee: 20000,
         pairingType: 'doubles',
     },
@@ -103,6 +115,7 @@ async function seedRegistrationTournament(database, env) {
                         id: true,
                         categoryCode: true,
                         categoryName: true,
+                        entryFee: true,
                         pairingType: true,
                         entryStatus: true,
                     },

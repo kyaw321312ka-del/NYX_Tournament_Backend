@@ -282,7 +282,7 @@ model TournamentRegistrationMember {
   user         User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([registrationId, userId])
-  @@unique([tournamentCategoryId, userId], map: "tournament_registration_members_category_user_key")
+  @@index([tournamentCategoryId, userId], map: "tournament_registration_members_category_user_idx")
   @@index([userId])
   @@map("tournament_registration_members")
 }

@@ -12,7 +12,7 @@ SET member.`tournament_category_id` = registration.`tournamentCategoryId`;
 
 ALTER TABLE `tournament_registration_members`
     MODIFY COLUMN `tournament_category_id` INTEGER NOT NULL,
-    ADD UNIQUE INDEX `tournament_registration_members_category_user_key`
+    ADD INDEX `tournament_registration_members_category_user_idx`
         (`tournament_category_id`, `user_id`),
     DROP FOREIGN KEY `tournament_registration_members_registration_id_fkey`,
     ADD CONSTRAINT `tournament_registration_members_registration_category_fkey`
