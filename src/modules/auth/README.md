@@ -17,7 +17,7 @@ All routes are under `/api/auth`:
 | `GET` | `/me` | Return the current account; requires `Authorization: Bearer <token>` |
 
 Registration uses `multipart/form-data` with text fields `name`, `email`,
-`password`, one or more `categoryIds`, and optional `gender` and `phno`, plus required file fields `frontIdImg` and
+`password`, `gender`, one or more `categoryIds`, and optional `phno`, plus required file fields `frontIdImg` and
 `backIdImg`. An optional `profileImage` file may also be included. Identity
 documents accept JPEG, PNG, or WebP up to 10 MB each; the profile image accepts
 the same formats up to 5 MB. Files are stored while the account is pending
@@ -25,7 +25,7 @@ email verification, then their references are copied to the user account when
 the OTP is verified. Identity documents remain private; the profile image is
 publicly served.
 
-The optional `gender` field accepts `male`, `female`, `non_binary`, or
+The required `gender` field accepts `male`, `female`, `non_binary`, or
 `prefer_not_to_say` (also accepts labels such as `Non-binary`). It is stored on
 the user profile and does not affect tournament-category registration.
 

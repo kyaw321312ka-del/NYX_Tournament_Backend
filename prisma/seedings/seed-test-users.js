@@ -49,6 +49,7 @@ async function seedTestUsers(database, env) {
             const user = await transaction.user.create({
                 data: {
                     ...testUser,
+                    gender: 'male',
                     passwordHash,
                     emailVerifiedAt: new Date(),
                     roleId: role.id,

@@ -45,6 +45,7 @@ test('admin seed creates a verified admin with a bcrypt password hash', async ()
     assert.equal(result.created, true);
     assert.equal(createdData.email, 'admin@example.com');
     assert.equal(createdData.roleId, 7);
+    assert.equal(createdData.gender, 'male');
     assert.ok(createdData.emailVerifiedAt instanceof Date);
     assert.equal(await bcrypt.compare('a-long-test-password', createdData.passwordHash), true);
 });

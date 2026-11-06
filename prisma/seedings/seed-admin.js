@@ -44,6 +44,7 @@ async function seedAdmin(database, env) {
         const user = await transaction.user.create({
             data: {
                 name,
+                gender: 'male',
                 email,
                 passwordHash,
                 emailVerifiedAt: new Date(),

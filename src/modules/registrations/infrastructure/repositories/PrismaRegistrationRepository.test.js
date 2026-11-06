@@ -9,6 +9,7 @@ function createRepository({
         tournament: { publicationStatus: 'published' },
     },
     duplicate = null,
+    transactionError = null,
 } = {}) {
     const calls = {
         category: [],
@@ -56,7 +57,10 @@ function createRepository({
         },
     };
     const prisma = {
-        $transaction: async (callback) => callback(transaction),
+        $transaction: async (callback) => {
+            if (transactionError) throw transactionError;
+            return callback(transaction);
+        },
     };
 
     return {
@@ -77,9 +81,23 @@ test('creates a pending singles registration with the authenticated user as regi
     assert.equal(registration.status.name, 'pending');
     assert.deepEqual(registration.members.map(({ userId }) => userId), [7]);
     assert.equal(calls.create.length, 1);
-    assert.deepEqual(calls.create[0].data.members.create, [{ userId: 7 }]);
+    assert.deepEqual(calls.create[0].data.members.create, [{
+        userId: 7,
+        tournamentCategoryId: 3,
+    }]);
     assert.equal(calls.create[0].data.registeredBy, 7);
     assert.deepEqual(calls.status[0].where, { name: 'pending' });
+});
+
+test('maps database uniqueness conflicts to a registration conflict response', async () => {
+    const { repository } = createRepository({
+        transactionError: { code: 'P2002' },
+    });
+
+    await assert.rejects(
+        repository.create({ userId: 7, tournamentCategoryId: 3 }),
+        (error) => error.statusCode === 409 && /already registered/.test(error.message),
+    );
 });
 
 test('requires a partner invitation rather than allowing a direct doubles registration', async () => {

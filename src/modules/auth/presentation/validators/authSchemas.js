@@ -12,7 +12,9 @@ const genderSchema = z.preprocess(
   (value) => (typeof value === 'string'
     ? value.trim().toLowerCase().replace(/[\s-]+/g, '_')
     : value),
-  z.enum(['male', 'female', 'non_binary', 'prefer_not_to_say']).nullable().optional(),
+  z.enum(['male', 'female', 'non_binary', 'prefer_not_to_say'], {
+    error: 'Choose a valid gender.',
+  }),
 );
 
 const categoryIdsSchema = z.preprocess(

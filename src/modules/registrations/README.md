@@ -45,9 +45,30 @@ after 48 hours. The tournament must be published, the category open, and
 neither player may already be registered or have another pending partner
 invitation in the category.
 
+Invitations use the existing `tournament_partner_invitations` table. A database
+unique constraint prevents a player from joining multiple registrations in the
+same category, including when concurrent requests pass the application-level
+duplicate check.
+
 For local Bruno testing, configure `ADMIN_EMAIL` for an existing admin account
 and run `npm run seed:registration-tournament`. This creates or reuses the
 published `NYX Registration Test Open 2027` tournament with open singles,
 doubles, and mixed-doubles categories, and prints their IDs.
 
 Apply the database migration with `npx prisma migrate deploy`.
+
+Before deploying the category-participation constraint on a database with
+existing registrations, check for players already attached to multiple
+registrations in one category:
+
+```sql
+SELECT registration.tournamentCategoryId, member.user_id, COUNT(*) AS registrations
+FROM tournament_registration_members AS member
+JOIN tournament_registrations AS registration
+  ON registration.id = member.registration_id
+GROUP BY registration.tournamentCategoryId, member.user_id
+HAVING COUNT(*) > 1;
+```
+
+Resolve any returned rows before deployment; the migration intentionally
+preserves registration records rather than deleting duplicate membership data.

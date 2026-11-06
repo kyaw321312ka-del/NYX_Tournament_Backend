@@ -39,7 +39,7 @@ model User {
   id              Int       @id @default(autoincrement())
   roleId          Int
   name            String    @db.VarChar(150)
-  gender          String?   @db.VarChar(30)
+  gender          String    @db.VarChar(30)
   phno            String?   @db.VarChar(30)
   email           String    @unique @db.VarChar(254)
   passwordHash    String    @map("password") @db.VarChar(255)
@@ -70,7 +70,7 @@ model User {
 model PendingRegistration {
   id              Int      @id @default(autoincrement())
   name            String   @db.VarChar(150)
-  gender          String?  @db.VarChar(30)
+  gender          String   @db.VarChar(30)
   phno            String?  @db.VarChar(30)
   email           String   @unique @db.VarChar(254)
   passwordHash    String   @db.VarChar(255)
@@ -261,6 +261,7 @@ model TournamentRegistration {
   members           TournamentRegistrationMember[]
   partnerInvitation TournamentPartnerInvitation?
 
+  @@unique([id, tournamentCategoryId])
   @@index([tournamentCategoryId, statusId])
   @@index([registeredBy, statusId])
   @@map("tournament_registrations")
@@ -271,15 +272,17 @@ model TournamentRegistration {
 // ==========================================
 
 model TournamentRegistrationMember {
-  id             Int      @id @default(autoincrement())
-  registrationId Int      @map("registration_id")
-  userId         Int      @map("user_id")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id                   Int      @id @default(autoincrement())
+  registrationId       Int      @map("registration_id")
+  tournamentCategoryId Int      @map("tournament_category_id")
+  userId               Int      @map("user_id")
+  createdAt            DateTime @default(now()) @map("created_at")
 
-  registration TournamentRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  registration TournamentRegistration @relation(fields: [registrationId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Cascade, map: "tournament_registration_members_registration_category_fkey")
   user         User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([registrationId, userId])
+  @@unique([tournamentCategoryId, userId], map: "tournament_registration_members_category_user_key")
   @@index([userId])
   @@map("tournament_registration_members")
 }

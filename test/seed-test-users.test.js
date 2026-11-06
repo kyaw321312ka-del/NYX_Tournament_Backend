@@ -78,8 +78,8 @@ test('creates the three verified player accounts with a bcrypt password hash', a
     ]);
     assert.ok(results.every(({ created }) => created));
     assert.equal(calls.creates.length, 3);
-    assert.ok(calls.creates.every(({ roleId, emailVerifiedAt }) => (
-        roleId === 2 && emailVerifiedAt instanceof Date
+    assert.ok(calls.creates.every(({ roleId, gender, emailVerifiedAt }) => (
+        roleId === 2 && gender === 'male' && emailVerifiedAt instanceof Date
     )));
     assert.equal(
         await bcrypt.compare('a-strong-test-password', calls.creates[0].passwordHash),

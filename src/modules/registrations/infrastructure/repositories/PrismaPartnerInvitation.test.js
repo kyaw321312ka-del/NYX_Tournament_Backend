@@ -31,6 +31,7 @@ function createRepository({
     selectedInvitation = null,
     existingRegistration = null,
     existingPendingInvitation = null,
+    transactionError = null,
 } = {}) {
     const calls = {
         category: [],
@@ -124,6 +125,7 @@ function createRepository({
     const prisma = {
         $transaction: async (callback, options) => {
             calls.transactionOptions.push(options);
+            if (transactionError) throw transactionError;
             return callback(transaction);
         },
     };
@@ -221,7 +223,10 @@ test('accepting an invitation creates the pending registration and both members 
     assert.equal(calls.registrationCreates.length, 1);
     assert.deepEqual(
         calls.registrationCreates[0].data.members.create,
-        [{ userId: inviter.id }, { userId: invitedUser.id }],
+        [
+            { userId: inviter.id, tournamentCategoryId: category.id },
+            { userId: invitedUser.id, tournamentCategoryId: category.id },
+        ],
     );
     assert.equal(calls.registrationCreates[0].data.registeredBy, inviter.id);
     assert.deepEqual(calls.invitationUpdates[0].data, {
@@ -230,6 +235,29 @@ test('accepting an invitation creates the pending registration and both members 
         registrationId: 22,
     });
     assert.equal(calls.transactionOptions[0].isolationLevel, 'Serializable');
+});
+
+test('maps category participation uniqueness conflicts when accepting an invitation', async () => {
+    const invitation = {
+        id: 31,
+        tournamentCategoryId: category.id,
+        invitedBy: inviter.id,
+        invitedUserId: invitedUser.id,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        category,
+        inviter,
+        invitedUser,
+    };
+    const { repository } = createRepository({
+        selectedInvitation: invitation,
+        transactionError: { code: 'P2002' },
+    });
+
+    await assert.rejects(
+        repository.acceptPartnerInvitation(invitedUser.id, invitation.id),
+        (error) => error.statusCode === 409 && /already registered/.test(error.message),
+    );
 });
 
 test('only the invited player may accept and expired invitations are marked expired', async (t) => {

@@ -6,6 +6,8 @@ const PairingType = require('../../../tournaments/domain/enums/PairingType');
 const RegistrationStatus = require('../../../tournaments/domain/enums/RegistrationStatus');
 
 const INVITATION_EXPIRY_HOURS = 48;
+const DUPLICATE_PARTICIPATION_MESSAGE =
+    'One or more players are already registered for this tournament category.';
 const partnerInvitationInclude = {
     category: {
         include: {
@@ -22,6 +24,20 @@ const partnerInvitationInclude = {
     },
 };
 
+async function withParticipationConflictHandling(operation) {
+    try {
+        return await operation();
+    } catch (error) {
+        if (error?.code === 'P2002') {
+            throw new RegistrationError(409, DUPLICATE_PARTICIPATION_MESSAGE);
+        }
+        if (error?.code === 'P2034') {
+            throw new RegistrationError(409, 'Registration changed concurrently. Please retry.');
+        }
+        throw error;
+    }
+}
+
 class PrismaRegistrationRepository extends RegistrationRepository {
     constructor(prisma) {
         super();
@@ -36,7 +52,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             ownerId,
             ...members.map((member) => Number(member)),
         ].filter((memberId) => Number.isInteger(memberId) && memberId > 0))];
-        const registration = await this.prisma.$transaction(async (transaction) => {
+        const registrationPromise = this.prisma.$transaction(async (transaction) => {
             const category = await transaction.tournamentCategory.findUnique({
                 where: { id: categoryId },
                 include: {
@@ -100,7 +116,10 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     registeredBy: ownerId,
                     statusId: status.id,
                     members: {
-                        create: uniqueMemberIds.map((memberId) => ({ userId: memberId })),
+                        create: uniqueMemberIds.map((memberId) => ({
+                            userId: memberId,
+                            tournamentCategoryId: categoryId,
+                        })),
                     },
                 },
                 include: {
@@ -119,6 +138,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                 },
             });
         }, { isolationLevel: 'Serializable' });
+        const registration = await withParticipationConflictHandling(() => registrationPromise);
 
         return Registration.fromRecord(registration);
     }
@@ -264,7 +284,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
         const playerId = Number(userId);
         const id = Number(invitationId);
         const now = new Date();
-        const result = await this.prisma.$transaction(async (transaction) => {
+        const resultPromise = this.prisma.$transaction(async (transaction) => {
             const invitation = await transaction.tournamentPartnerInvitation.findUnique({
                 where: { id },
                 include: {
@@ -346,7 +366,10 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     registeredBy: invitation.invitedBy,
                     statusId: status.id,
                     members: {
-                        create: playerIds.map((memberId) => ({ userId: memberId })),
+                        create: playerIds.map((memberId) => ({
+                            userId: memberId,
+                            tournamentCategoryId: invitation.tournamentCategoryId,
+                        })),
                     },
                 },
                 include: {
@@ -380,6 +403,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
 
             return { registration };
         }, { isolationLevel: 'Serializable' });
+        const result = await withParticipationConflictHandling(() => resultPromise);
 
         if (result.expired) {
             throw new RegistrationError(410, 'This partner invitation has expired.');

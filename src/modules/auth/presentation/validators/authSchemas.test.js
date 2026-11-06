@@ -34,11 +34,14 @@ test('registration accepts supported gender values and rejects unknown values', 
     assert.equal(schemas.register.safeParse({ ...base, gender }).success, true);
   }
   assert.equal(schemas.register.safeParse({ ...base, gender: 'unknown' }).success, false);
+  assert.equal(schemas.register.safeParse(base).success, false);
+  assert.equal(schemas.register.safeParse({ ...base, gender: null }).success, false);
 });
 
 test('registration rejects passwords that bcrypt would truncate', () => {
   const result = schemas.register.safeParse({
     name: 'Player',
+    gender: 'female',
     email: 'player@example.com',
     password: 'é'.repeat(37),
     categoryIds: ['1'],
@@ -50,6 +53,7 @@ test('registration rejects passwords that bcrypt would truncate', () => {
 test('registration requires at least one valid player category', () => {
   assert.equal(schemas.register.safeParse({
     name: 'Player',
+    gender: 'female',
     email: 'player@example.com',
     password: 'correct horse battery staple',
     categoryIds: ['1'],
@@ -57,6 +61,7 @@ test('registration requires at least one valid player category', () => {
 
   assert.equal(schemas.register.safeParse({
     name: 'Player',
+    gender: 'female',
     email: 'player@example.com',
     password: 'correct horse battery staple',
     categoryIds: [],
@@ -64,6 +69,7 @@ test('registration requires at least one valid player category', () => {
 
   assert.equal(schemas.register.safeParse({
     name: 'Player',
+    gender: 'female',
     email: 'player@example.com',
     password: 'correct horse battery staple',
     categoryIds: ['not-a-category'],
