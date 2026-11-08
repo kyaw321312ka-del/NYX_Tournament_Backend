@@ -1,12 +1,15 @@
+
 name: CI and CD
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
 
 permissions:
@@ -17,9 +20,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+
+  # ==========================================
+  # 1. CONTINUOUS INTEGRATION
+  # ==========================================
   ci:
     name: Test
     runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -37,19 +48,30 @@ jobs:
 
       - name: Generate Prisma Client
         run: npx prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
 
       - name: Run tests
         run: npm test
 
+
+  # ==========================================
+  # 2. CONTINUOUS DEPLOYMENT
+  # ==========================================
   deploy:
     name: Deploy to Namecheap cPanel
     needs: ci
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    if: >
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-latest
     environment: production
+
     steps:
+
+      # ------------------------------------------
+      # Configure SSH
+      # ------------------------------------------
       - name: Configure SSH
         shell: bash
         env:
@@ -58,31 +80,47 @@ jobs:
           SSH_PORT: ${{ secrets.NAMECHEAP_PORT }}
           SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.NAMECHEAP_KNOWN_HOSTS }}
+
         run: |
           set -euo pipefail
+
           : "${SSH_HOST:?Missing NAMECHEAP_HOST secret}"
           : "${SSH_USER:?Missing NAMECHEAP_USER secret}"
           : "${SSH_PORT:?Missing NAMECHEAP_PORT secret}"
           : "${SSH_PRIVATE_KEY:?Missing NAMECHEAP_SSH_KEY secret}"
           : "${SSH_KNOWN_HOSTS:?Missing NAMECHEAP_KNOWN_HOSTS secret}"
+
           if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]]; then
-            echo "NAMECHEAP_PORT must contain a numeric SSH port." >&2
+            echo "NAMECHEAP_PORT must be numeric." >&2
             exit 1
           fi
 
           install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/namecheap_deploy_key"
-          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/namecheap_deploy_key" "$HOME/.ssh/known_hosts"
 
+          printf '%s\n' "$SSH_PRIVATE_KEY" \
+            > "$HOME/.ssh/namecheap_deploy_key"
+
+          printf '%s\n' "$SSH_KNOWN_HOSTS" \
+            > "$HOME/.ssh/known_hosts"
+
+          chmod 600 "$HOME/.ssh/namecheap_deploy_key"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+
+      # ------------------------------------------
+      # Deploy application
+      # ------------------------------------------
       - name: Update application, migrate, and restart
         shell: bash
+
         env:
           SSH_HOST: ${{ secrets.NAMECHEAP_HOST }}
           SSH_USER: ${{ secrets.NAMECHEAP_USER }}
           SSH_PORT: ${{ secrets.NAMECHEAP_PORT }}
+
         run: |
           set -euo pipefail
+
           ssh \
             -i "$HOME/.ssh/namecheap_deploy_key" \
             -p "$SSH_PORT" \
@@ -90,25 +128,109 @@ jobs:
             -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SSH_HOST" 'bash -se' <<'REMOTE'
-          set -euo pipefail
-          cd /home/magwkdjx/repositories/NYX_Tournament_Backend
 
-          CPANEL_NODE_ACTIVATE=/home/magwkdjx/nodevenv/repositories/NYX_Tournament_Backend/24/bin/activate
-          if [[ -f "$CPANEL_NODE_ACTIVATE" ]]; then
-            source "$CPANEL_NODE_ACTIVATE"
-          fi
-          NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
-          if (( NODE_MAJOR != 24 )); then
-            echo "The cPanel application must use Node.js 24." >&2
+          set -euo pipefail
+
+          APP_DIR="/home/magwkdjx/repositories/NYX_Tournament_Backend"
+
+          CPANEL_NODE_ACTIVATE="/home/magwkdjx/nodevenv/repositories/NYX_Tournament_Backend/24/bin/activate"
+
+          cd "$APP_DIR"
+
+          echo "======================================"
+          echo "Starting NYX backend deployment"
+          echo "======================================"
+
+          # --------------------------------------
+          # Activate cPanel Node.js environment
+          # --------------------------------------
+          if [[ ! -f "$CPANEL_NODE_ACTIVATE" ]]; then
+            echo "cPanel Node.js activation file not found." >&2
             exit 1
           fi
 
+          source "$CPANEL_NODE_ACTIVATE"
+
+          # --------------------------------------
+          # Verify Node.js version
+          # --------------------------------------
+          NODE_MAJOR="$(node -p 'Number(process.versions.node.split(".")[0])')"
+
+          if (( NODE_MAJOR != 24 )); then
+            echo "The application requires Node.js 24." >&2
+            exit 1
+          fi
+
+          echo "Node version: $(node --version)"
+          echo "npm version: $(npm --version)"
+
+          # --------------------------------------
+          # Verify production environment
+          # --------------------------------------
+          if [[ -z "${DATABASE_URL:-}" ]]; then
+            echo "DATABASE_URL is not configured." >&2
+            exit 1
+          fi
+
+          # --------------------------------------
+          # Verify cPanel node_modules symlink
+          # --------------------------------------
+          if [[ ! -L node_modules ]]; then
+            echo "Expected cPanel node_modules symlink was not found." >&2
+            echo "Stopping to protect the production environment." >&2
+            exit 1
+          fi
+
+          echo "cPanel node_modules symlink verified."
+
+          # --------------------------------------
+          # Pull latest code
+          # --------------------------------------
+          echo "Pulling latest code..."
+
           git pull --ff-only origin main
-          npm ci --include=dev
+
+          # --------------------------------------
+          # Install dependencies
+          # --------------------------------------
+          echo "Installing dependencies..."
+
+          npm install --include=dev --no-audit --no-fund
+
+          # --------------------------------------
+          # Verify symlink after installation
+          # --------------------------------------
+          if [[ ! -L node_modules ]]; then
+            echo "ERROR: npm installation replaced the cPanel symlink." >&2
+            exit 1
+          fi
+
+          echo "node_modules symlink is still intact."
+
+          # --------------------------------------
+          # Generate Prisma Client
+          # --------------------------------------
+          echo "Generating Prisma Client..."
+
           npx prisma generate
+
+          # --------------------------------------
+          # Apply production database migrations
+          # --------------------------------------
+          echo "Applying database migrations..."
+
           npx prisma migrate deploy
-          npm prune --omit=dev
+
+          # --------------------------------------
+          # Restart Passenger application
+          # --------------------------------------
+          echo "Restarting application..."
 
           mkdir -p tmp
           touch tmp/restart.txt
+
+          echo "======================================"
+          echo "NYX backend deployment completed"
+          echo "======================================"
+
           REMOTE
