@@ -38,7 +38,7 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
         env:
-          DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/nyx_ci
+          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
 
       - name: Run tests
         run: npm test
