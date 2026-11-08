@@ -23,7 +23,8 @@ before saving it as a secret; do not disable strict host-key checking.
 
 The host must have the application repository checked out with an `origin`
 remote that can fetch `main`. Its production `.env` must already be configured
-in the application root, including `DATABASE_URL`. Configure the cPanel
+in the application root, including `DATABASE_URL`; deployment loads the value
+from that file for its preflight check without printing it. Configure the cPanel
 application to use Node.js 24; deployment activates
 `/home/magwkdjx/nodevenv/repositories/NYX_Tournament_Backend/24/bin/activate`.
 The workflow runs `npm install --include=dev --no-audit --no-fund`, verifies

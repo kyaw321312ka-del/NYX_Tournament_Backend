@@ -186,10 +186,17 @@ jobs:
           # --------------------------------------
           # Verify production environment
           # --------------------------------------
-          if [[ -z "${DATABASE_URL:-}" ]]; then
-            echo "DATABASE_URL is not configured." >&2
-            exit 1
-          fi
+          node -e '
+            const result = require("dotenv").config();
+            if (!process.env.DATABASE_URL) {
+              console.error(
+                result.error
+                  ? "DATABASE_URL is not configured and the application .env file could not be loaded."
+                  : "DATABASE_URL is not configured in the remote environment or application .env file."
+              );
+              process.exit(1);
+            }
+          '
 
           # --------------------------------------
           # Verify cPanel node_modules symlink
