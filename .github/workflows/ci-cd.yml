@@ -114,6 +114,18 @@ jobs:
           fi
 
 
+      - name: Verify SSH private key
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Checking SSH private key..."
+
+          ssh-keygen -y -f "$HOME/.ssh/namecheap_deploy_key" |
+            ssh-keygen -lf -
+
+          echo "Private key format is valid."
+
+
       # ------------------------------------------
       # Deploy application
       # ------------------------------------------
