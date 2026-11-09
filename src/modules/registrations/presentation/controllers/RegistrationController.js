@@ -129,6 +129,7 @@ function createRegistrationController({
                 return next(error);
             }
         },
+
     };
 }
 

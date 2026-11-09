@@ -40,6 +40,23 @@ class Registration {
                     email: member.user.email,
                 } : null,
             })) ?? [],
+            payments: this.payments?.map((payment) => ({
+                id: payment.id,
+                paymentMethodId: payment.paymentMethodId,
+                paymentMethodName: payment.paymentMethodName,
+                accountName: payment.accountName,
+                accountNumber: payment.accountNumber,
+                amount: payment.amount.toString(),
+                currency: payment.currency,
+                proofImageUrl: `/api/admin/payments/${payment.id}/proof`,
+                transactionReference: payment.transactionReference,
+                status: payment.status,
+                verifiedBy: payment.verifiedBy,
+                verifiedAt: payment.verifiedAt,
+                rejectionReason: payment.rejectionReason,
+                createdAt: payment.createdAt,
+                updatedAt: payment.updatedAt,
+            })) ?? [],
         };
     }
 }

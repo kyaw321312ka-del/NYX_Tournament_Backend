@@ -94,10 +94,7 @@ test('creates a pending singles registration with the authenticated user as regi
     assert.equal(registration.status.name, 'pending');
     assert.deepEqual(registration.members.map(({ userId }) => userId), [7]);
     assert.equal(calls.create.length, 1);
-    assert.deepEqual(calls.create[0].data.members.create, [{
-        userId: 7,
-        tournamentCategoryId: 3,
-    }]);
+    assert.deepEqual(calls.create[0].data.members.create, [{ userId: 7 }]);
     assert.equal(calls.create[0].data.registeredBy, 7);
     assert.deepEqual(calls.status[0].where, { name: 'pending' });
     assert.match(calls.locks[0].query, /FOR UPDATE/);

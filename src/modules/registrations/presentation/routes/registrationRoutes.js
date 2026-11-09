@@ -1,5 +1,5 @@
 const express = require('express');
-const validate = require('../middleware/validateRegistrationRequest');
+const validate = require('../../../../shared/middleware/validateRequest');
 
 function createRegistrationRouter({ controller, schemas, authenticate }) {
     const router = express.Router();

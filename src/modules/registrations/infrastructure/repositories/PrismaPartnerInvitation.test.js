@@ -93,6 +93,7 @@ function createRepository({
                     members: args.data.members.create.map(({ userId }) => ({
                         id: userId,
                         userId,
+                        tournamentCategoryId: args.data.tournamentCategoryId,
                         user: {
                             id: userId,
                             name: userId === inviter.id ? inviter.name : invitedUser.name,
@@ -238,8 +239,8 @@ test('accepting an invitation creates the pending registration and both members 
     assert.deepEqual(registration.members.map(({ userId }) => userId), [inviter.id, invitedUser.id]);
     assert.equal(calls.registrationCreates.length, 1);
     assert.deepEqual(calls.registrationCreates[0].data.members.create, [
-        { userId: inviter.id, tournamentCategoryId: category.id },
-        { userId: invitedUser.id, tournamentCategoryId: category.id },
+        { userId: inviter.id },
+        { userId: invitedUser.id },
     ]);
     assert.equal(calls.registrationCreates[0].data.registeredBy, inviter.id);
     assert.deepEqual(calls.invitationUpdates[0].data, {
@@ -296,7 +297,7 @@ test('maps category participation uniqueness conflicts when accepting an invitat
 
         assert.deepEqual(registration.members.map(({ userId }) => userId), [inviter.id, invitedUser.id]);
         assert.deepEqual(
-            calls.registrationCreates[0].data.members.create.map(({ tournamentCategoryId }) => tournamentCategoryId),
+            registration.members.map(({ tournamentCategoryId }) => tournamentCategoryId),
             [mixedCategory.id, mixedCategory.id],
         );
     });

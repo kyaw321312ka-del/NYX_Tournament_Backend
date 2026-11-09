@@ -28,6 +28,8 @@ coverage/
 !/uploads/identity-documents/.gitkeep
 /uploads/tournament-banners/*
 !/uploads/tournament-banners/.gitkeep
+/uploads/payment-proofs/*
+!/uploads/payment-proofs/.gitkeep
 
 # Prisma-generated agent skills
 .agents/

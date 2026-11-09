@@ -6,11 +6,12 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test \"src/modules/**/*.test.js\" \"test/**/*.test.js\"",
+    "test": "node --test \"src/**/*.test.js\" \"test/**/*.test.js\"",
     "seed:admin": "node prisma/seedings/seed-admin.js",
     "seed:player-categories": "node prisma/seedings/seed-player-categories.js",
     "seed:registration-statuses": "node prisma/seedings/seed-registration-statuses.js",
     "seed:registration-tournament": "node prisma/seedings/seed-registration-tournament.js",
+    "seed:payment-methods": "node prisma/seedings/seed-payment-methods.js",
     "seed:test-users": "node prisma/seedings/seed-test-users.js",
     "postinstall": "prisma skills sync || exit 0"
   },

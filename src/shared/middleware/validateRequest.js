@@ -1,13 +1,13 @@
-const RegistrationError = require('../../domain/errors/RegistrationError');
+const HttpError = require('../errors/HttpError');
 
-function validateRegistrationRequest(schema, source = 'body') {
+function validateRequest(schema, source = 'body') {
     return (req, res, next) => {
         const result = schema.safeParse(req[source]);
         if (!result.success) {
             const details = result.error.issues
                 .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
                 .join('; ');
-            return next(new RegistrationError(400, details));
+            return next(new HttpError(400, details));
         }
 
         req[`validated${source[0].toUpperCase()}${source.slice(1)}`] = result.data;
@@ -15,4 +15,4 @@ function validateRegistrationRequest(schema, source = 'body') {
     };
 }
 
-module.exports = validateRegistrationRequest;
+module.exports = validateRequest;

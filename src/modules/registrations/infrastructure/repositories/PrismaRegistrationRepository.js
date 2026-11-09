@@ -127,7 +127,6 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     members: {
                         create: uniqueMemberIds.map((memberId) => ({
                             userId: memberId,
-                            tournamentCategoryId: categoryId,
                         })),
                     },
                 },
@@ -137,6 +136,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                         select: { id: true, name: true },
                     },
                     status: true,
+                    payments: { orderBy: { createdAt: 'desc' } },
                     members: {
                         include: {
                             user: {
@@ -393,7 +393,6 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     members: {
                         create: playerIds.map((memberId) => ({
                             userId: memberId,
-                            tournamentCategoryId: invitation.tournamentCategoryId,
                         })),
                     },
                 },
@@ -401,6 +400,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     category: true,
                     creator: { select: { id: true, name: true } },
                     status: true,
+                    payments: { orderBy: { createdAt: 'desc' } },
                     members: {
                         include: {
                             user: { select: { id: true, name: true, email: true } },
@@ -514,6 +514,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                 category: true,
                 creator: { select: { id: true, name: true } },
                 status: true,
+                payments: { orderBy: { createdAt: 'desc' } },
                 members: {
                     include: {
                         user: { select: { id: true, name: true, email: true } },
@@ -550,6 +551,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     category: true,
                     creator: { select: { id: true, name: true } },
                     status: true,
+                    payments: { orderBy: { createdAt: 'desc' } },
                     members: {
                         include: {
                             user: { select: { id: true, name: true, email: true } },

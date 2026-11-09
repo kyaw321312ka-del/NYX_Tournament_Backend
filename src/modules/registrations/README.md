@@ -82,3 +82,52 @@ Existing registration history is preserved. New registration and invitation
 acceptance requests check pending/confirmed registrations while holding a lock
 on the category row, so concurrent requests cannot claim the same category
 place.
+
+## Manual payment verification
+
+Apply the payment migration with `npx prisma migrate deploy`. A registration
+creator submits a transfer screenshot to `POST
+/api/registrations/:registrationId/payments` as `multipart/form-data`. Include
+the selected `paymentMethodId` as a text field, the image in the `proof` file
+field, and optionally provide a `transactionReference` text field. First fetch
+available destinations from `GET /api/payment-methods`; the player must select
+an active method. JPEG, PNG, and WebP files up to 10 MB are accepted. The API
+snapshots the category entry fee in MMK and the selected destination details;
+uploaded proofs are stored outside the public uploads directory.
+
+Only an administrator can review submitted payments:
+
+- `GET /api/admin/payments/pending?page=1&pageSize=20` lists payments awaiting
+  review.
+- `GET /api/admin/payments/:id/proof` serves the private screenshot.
+- `PATCH /api/admin/payments/:id/verify` marks the payment `paid` and its
+  registration `confirmed`.
+- `PATCH /api/admin/payments/:id/reject` rejects a payment and requires a JSON
+  body such as `{"rejectionReason":"The transfer amount does not match."}`.
+
+Players can view their payment history with
+`GET /api/payments/my?page=1&pageSize=20`.
+
+Rejected payments remain in the history and the registration stays pending, so
+its creator can submit another screenshot. Only one payment can be awaiting
+verification or paid for a registration at a time. Review and registration
+status changes are committed transactionally. A screenshot is evidence only;
+administrators must verify the transfer against bank or wallet records.
+
+## Payment methods
+
+Authenticated players can list active transfer destinations with
+`GET /api/payment-methods`. Admins can manage payment accounts using
+`/api/admin/payment-methods`:
+
+- `POST /api/admin/payment-methods` creates a method with `paymentMethodName`,
+  `accountName`, and `accountNumber`.
+- `GET /api/admin/payment-methods` lists all methods, including inactive ones.
+- `GET /api/admin/payment-methods/:id` retrieves one method.
+- `PATCH /api/admin/payment-methods/:id` updates supplied account details.
+- `PATCH /api/admin/payment-methods/:id/status` activates or deactivates an
+  account with `{"isActive":false}`.
+
+Payment methods are never deleted. Payments retain a snapshot of the method
+name and recipient account details used at submission time, even if the
+administrator later edits or deactivates that method.

@@ -6,6 +6,8 @@ const prisma = require('./shared/database/prisma');
 const createAuthModule = require('./bootstrap/auth');
 const createTournamentModule = require('./bootstrap/tournaments');
 const createRegistrationModule = require('./bootstrap/registrations');
+const createPaymentMethodModule = require('./bootstrap/paymentMethods');
+const createPaymentModule = require('./bootstrap/payments');
 const createUserModule = require('./bootstrap/users');
 const errorHandler = require('./shared/middleware/errorHandler');
 const notFound = require('./shared/middleware/notFound');
@@ -17,6 +19,14 @@ const tournamentRoutes = createTournamentModule({
     authenticate: authModule.authenticate,
 });
 const registrationRoutes = createRegistrationModule({
+    prisma,
+    authenticate: authModule.authenticate,
+});
+const paymentMethodRoutes = createPaymentMethodModule({
+    prisma,
+    authenticate: authModule.authenticate,
+});
+const paymentRoutes = createPaymentModule({
     prisma,
     authenticate: authModule.authenticate,
 });
@@ -45,6 +55,8 @@ app.use(
 app.use('/api/auth', authModule.routes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/registrations', registrationRoutes);
+app.use('/api', paymentMethodRoutes);
+app.use('/api', paymentRoutes);
 app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
