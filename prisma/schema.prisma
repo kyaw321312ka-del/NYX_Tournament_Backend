@@ -30,6 +30,24 @@ enum PaymentStatus {
   rejected
 }
 
+enum DrawFormat {
+  SINGLE_ELIMINATION
+  ROUND_ROBIN
+  GROUP_KNOCKOUT
+}
+
+enum SeedingMethod {
+  RANDOM
+  MANUAL
+  RANKING
+}
+
+enum TournamentDrawStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model PaymentMethod {
   id                Int      @id @default(autoincrement())
   paymentMethodName String   @map("payment_method_name") @db.VarChar(100)
@@ -224,10 +242,28 @@ model TournamentCategory {
   pointTiers         CategoryPointTier[]
   registrations      TournamentRegistration[]
   partnerInvitations TournamentPartnerInvitation[]
+  drawConfiguration  TournamentDrawConfiguration?
+  draws              TournamentDraw[]
 
   @@unique([tournamentId, categoryCode])
   @@index([tournamentId])
   @@map("tournament_categories")
+}
+
+model TournamentDrawConfiguration {
+  id                   Int           @id @default(autoincrement())
+  tournamentCategoryId Int           @unique @map("tournament_category_id")
+  drawFormat           DrawFormat    @map("draw_format")
+  seedingMethod        SeedingMethod @default(RANDOM) @map("seeding_method")
+  groupCount           Int?          @map("group_count")
+  qualifiersPerGroup   Int?          @map("qualifiers_per_group")
+  thirdPlaceMatch      Boolean       @default(false) @map("third_place_match")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  tournamentCategory TournamentCategory @relation(fields: [tournamentCategoryId], references: [id], onDelete: Cascade)
+
+  @@map("tournament_draw_configurations")
 }
 
 // ==========================================
@@ -284,11 +320,52 @@ model TournamentRegistration {
   members           TournamentRegistrationMember[]
   partnerInvitation TournamentPartnerInvitation?
   payments          TournamentPayment[]
+  drawParticipants  TournamentDrawParticipant[]
 
   @@unique([id, tournamentCategoryId])
   @@index([tournamentCategoryId, statusId])
   @@index([registeredBy, statusId])
   @@map("tournament_registrations")
+}
+
+model TournamentDraw {
+  id                    Int                  @id @default(autoincrement())
+  tournamentCategoryId  Int                  @map("tournament_category_id")
+  version               Int
+  status                TournamentDrawStatus @default(DRAFT)
+  configurationSnapshot Json                 @map("configuration_snapshot")
+  generatedAt           DateTime             @default(now()) @map("generated_at")
+  publishedAt           DateTime?            @map("published_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  tournamentCategory TournamentCategory          @relation(fields: [tournamentCategoryId], references: [id], onDelete: Cascade)
+  participants       TournamentDrawParticipant[]
+
+  @@unique([tournamentCategoryId, version], map: "td_category_version_uq")
+  @@unique([id, tournamentCategoryId], map: "td_id_category_uq")
+  @@index([tournamentCategoryId, status], map: "td_category_status_idx")
+  @@map("tournament_draws")
+}
+
+model TournamentDrawParticipant {
+  id                   Int      @id @default(autoincrement())
+  drawId               Int      @map("draw_id")
+  registrationId       Int      @map("registration_id")
+  tournamentCategoryId Int      @map("tournament_category_id")
+  bracketPosition      Int      @map("bracket_position")
+  seedNumber           Int?     @map("seed_number")
+  groupNumber          Int?     @map("group_number")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  draw         TournamentDraw         @relation(fields: [drawId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Cascade)
+  registration TournamentRegistration @relation(fields: [registrationId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Restrict)
+
+  @@unique([drawId, registrationId], map: "tdp_draw_registration_uq")
+  @@unique([drawId, bracketPosition], map: "tdp_draw_position_uq")
+  @@index([drawId, tournamentCategoryId], map: "tdp_draw_category_idx")
+  @@index([registrationId, tournamentCategoryId], map: "tdp_registration_category_idx")
+  @@map("tournament_draw_participants")
 }
 
 // ==========================================
@@ -356,9 +433,9 @@ model TournamentPayment {
   createdAt            DateTime      @default(now()) @map("created_at")
   updatedAt            DateTime      @updatedAt @map("updated_at")
 
-  registration TournamentRegistration @relation(fields: [registrationId], references: [id], onDelete: Restrict)
-  paymentMethod PaymentMethod         @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
-  verifier     User?                  @relation("PaymentVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  registration  TournamentRegistration @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  paymentMethod PaymentMethod          @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  verifier      User?                  @relation("PaymentVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
 
   @@index([registrationId, status])
   @@index([paymentMethodId])

@@ -36,6 +36,23 @@ const CATEGORIES = [
     },
 ];
 
+const DRAW_CONFIGURATIONS = {
+    MS: {
+        drawFormat: 'SINGLE_ELIMINATION',
+        seedingMethod: 'RANDOM',
+    },
+    WS: {
+        drawFormat: 'ROUND_ROBIN',
+        seedingMethod: 'RANDOM',
+    },
+    MD: {
+        drawFormat: 'GROUP_KNOCKOUT',
+        seedingMethod: 'RANDOM',
+        groupCount: 4,
+        qualifiersPerGroup: 2,
+    },
+};
+
 async function seedRegistrationTournament(database, env) {
     if (env.NODE_ENV === 'production') {
         throw new Error('Registration test tournaments cannot be seeded in production.');
@@ -83,7 +100,7 @@ async function seedRegistrationTournament(database, env) {
         }
 
         for (const category of CATEGORIES) {
-            await transaction.tournamentCategory.upsert({
+            const categoryRecord = await transaction.tournamentCategory.upsert({
                 where: {
                     tournamentId_categoryCode: {
                         tournamentId: tournament.id,
@@ -103,6 +120,18 @@ async function seedRegistrationTournament(database, env) {
                     entryStatus: 'open',
                 },
             });
+
+            const drawConfiguration = DRAW_CONFIGURATIONS[category.categoryCode];
+            if (drawConfiguration) {
+                await transaction.tournamentDrawConfiguration.upsert({
+                    where: { tournamentCategoryId: categoryRecord.id },
+                    create: {
+                        tournamentCategoryId: categoryRecord.id,
+                        ...drawConfiguration,
+                    },
+                    update: drawConfiguration,
+                });
+            }
         }
 
         return transaction.tournament.findUnique({
@@ -118,6 +147,7 @@ async function seedRegistrationTournament(database, env) {
                         entryFee: true,
                         pairingType: true,
                         entryStatus: true,
+                        drawConfiguration: true,
                     },
                 },
             },

@@ -8,6 +8,7 @@ function createDatabase({ existingTournament = null, admin = { id: 1, role: { na
         tournamentCreates: [],
         tournamentUpdates: [],
         categoryUpserts: [],
+        drawConfigurationUpserts: [],
     };
     const tournament = existingTournament ?? {
         id: 25,
@@ -37,6 +38,12 @@ function createDatabase({ existingTournament = null, admin = { id: 1, role: { na
                     upsert: async (args) => {
                         calls.categoryUpserts.push(args);
                         return { id: calls.categoryUpserts.length, ...args.create };
+                    },
+                },
+                tournamentDrawConfiguration: {
+                    upsert: async (args) => {
+                        calls.drawConfigurationUpserts.push(args);
+                        return args.create;
                     },
                 },
             });
@@ -88,6 +95,20 @@ test('creates and publishes a tournament with all gender-eligible categories ope
             ['XD', 'mixed_doubles', 'open', 20000],
         ],
     );
+    assert.deepEqual(
+        calls.drawConfigurationUpserts.map(({ create }) => [
+            calls.categoryUpserts[create.tournamentCategoryId - 1].create.categoryCode,
+            create.drawFormat,
+            create.seedingMethod,
+            create.groupCount ?? null,
+            create.qualifiersPerGroup ?? null,
+        ]),
+        [
+            ['MS', 'SINGLE_ELIMINATION', 'RANDOM', null, null],
+            ['WS', 'ROUND_ROBIN', 'RANDOM', null, null],
+            ['MD', 'GROUP_KNOCKOUT', 'RANDOM', 4, 2],
+        ],
+    );
     assert.equal(result.id, 25);
 });
 
@@ -108,6 +129,7 @@ test('reuses and publishes an existing seeded tournament idempotently', async ()
     assert.ok(calls.categoryUpserts.every(({ where }) => (
         where.tournamentId_categoryCode.tournamentId === 33
     )));
+    assert.equal(calls.drawConfigurationUpserts.length, 3);
 });
 
 test('rejects a configured email that is not an administrator', async () => {
