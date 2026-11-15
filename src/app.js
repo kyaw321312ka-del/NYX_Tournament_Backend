@@ -9,6 +9,7 @@ const createRegistrationModule = require('./bootstrap/registrations');
 const createPaymentMethodModule = require('./bootstrap/paymentMethods');
 const createPaymentModule = require('./bootstrap/payments');
 const createUserModule = require('./bootstrap/users');
+const createCorsMiddleware = require('./shared/middleware/configureCors');
 const errorHandler = require('./shared/middleware/errorHandler');
 const notFound = require('./shared/middleware/notFound');
 
@@ -35,6 +36,7 @@ const userRoutes = createUserModule({
     authenticate: authModule.authenticate,
 });
 
+app.use(createCorsMiddleware());
 app.use(express.json());
 app.use(
     '/uploads/player-profiles',

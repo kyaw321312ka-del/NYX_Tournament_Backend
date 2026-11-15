@@ -32,3 +32,17 @@ the cPanel `node_modules` symlink remains intact, then runs `prisma generate`
 and `prisma migrate deploy` before restarting Passenger via `tmp/restart.txt`.
 Production migrations must be committed to the repository;
 `prisma migrate dev` is never run by CI/CD.
+
+## Frontend CORS
+
+The API allows frontend requests from `http://localhost:5173` and
+`http://127.0.0.1:5173` by default. Set `CORS_ORIGINS` in `.env` to a
+comma-separated allowlist for other environments, for example:
+
+```env
+CORS_ORIGINS=http://localhost:5173,https://frontend.example.com
+```
+
+Include only trusted frontend origins. Requests without an `Origin` header,
+such as Bruno or server-to-server requests, are also accepted. Cookie
+credentials are not enabled; bearer-token authorization is supported.
