@@ -8,7 +8,7 @@ class User {
   }
 
   toPublicProfile() {
-    return {
+    const profile = {
       id: this.id,
       name: this.name,
       gender: this.gender,
@@ -19,6 +19,13 @@ class User {
       emailVerifiedAt: this.emailVerifiedAt,
       createdAt: this.createdAt,
     };
+    if (Array.isArray(this.categories)) {
+      profile.categories = this.categories.map(({ category }) => ({
+        id: category.id,
+        name: category.name,
+      }));
+    }
+    return profile;
   }
 }
 

@@ -14,6 +14,7 @@ function createRegisterUser({
       calls.push(['findUserByEmail', email]);
       return existingUser;
     },
+    findPendingEmailChangeByEmail: async () => null,
     findCategoriesByIds: async (ids) => {
       calls.push(['findCategoriesByIds', ids]);
       return ids.map((id) => ({ id, name: `Category ${id}` }));
@@ -166,4 +167,12 @@ test('rejects duplicate accounts before storing uploaded files', async () => {
   await assert.rejects(useCase.execute(input, files), { statusCode: 409 });
   assert.equal(calls.some(([action]) => action === 'saveProfileImage'), false);
   assert.equal(calls.some(([action]) => action === 'saveIdentityDocument'), false);
+});
+
+test('rejects an email reserved by a pending account email change', async () => {
+  const { useCase, calls } = createRegisterUser();
+  useCase.authRepository.findPendingEmailChangeByEmail = async () => ({ id: 1 });
+
+  await assert.rejects(useCase.execute(input, files), { statusCode: 409 });
+  assert.equal(calls.some(([action]) => action === 'saveProfileImage'), false);
 });

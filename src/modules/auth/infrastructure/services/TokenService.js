@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { randomUUID } = require('node:crypto');
 const AuthError = require('../../domain/errors/AuthError');
 
 const TOKEN_ISSUER = 'nyx-tournament-backend';
@@ -16,6 +17,7 @@ class TokenService {
         expiresIn: TOKEN_LIFETIME,
         issuer: TOKEN_ISSUER,
         subject: String(user.id),
+        jwtid: randomUUID(),
       },
     );
   }
@@ -28,13 +30,19 @@ class TokenService {
         issuer: TOKEN_ISSUER,
       });
 
-      if (typeof payload === 'string' || !payload.sub || !Number.isSafeInteger(Number(payload.sub))) {
+      if (typeof payload === 'string'
+        || !payload.sub
+        || !Number.isSafeInteger(Number(payload.sub))
+        || typeof payload.jti !== 'string'
+        || !Number.isSafeInteger(payload.exp)) {
         throw new AuthError(401, 'Invalid or expired access token.');
       }
 
       return {
         userId: Number(payload.sub),
         roleId: payload.roleId,
+        tokenId: payload.jti,
+        expiresAt: payload.exp,
       };
     } catch (error) {
       if (error instanceof AuthError && error.statusCode === 500) {

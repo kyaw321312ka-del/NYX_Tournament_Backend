@@ -6,6 +6,7 @@ const PrismaAuthRepository = require('../modules/auth/infrastructure/repositorie
 const EmailOtpSender = require('../modules/auth/infrastructure/services/EmailOtpSender');
 const PasswordHasher = require('../modules/auth/infrastructure/services/PasswordHasher');
 const TokenService = require('../modules/auth/infrastructure/services/TokenService');
+const PrismaTokenRevocationRepository = require('../modules/auth/infrastructure/repositories/PrismaTokenRevocationRepository');
 const LocalPlayerProfileImageStorage = require('../modules/users/infrastructure/services/LocalPlayerProfileImageStorage');
 const LocalIdentityDocumentStorage = require('../modules/users/infrastructure/services/LocalIdentityDocumentStorage');
 const createAuthController = require('../modules/auth/presentation/controllers/AuthController');
@@ -18,6 +19,8 @@ function createAuthModule({ prisma }) {
     const passwordHasher = new PasswordHasher();
     const otpService = new OtpService();
     const tokenService = new TokenService();
+    const tokenRevocationRepository = new PrismaTokenRevocationRepository(prisma);
+    const authenticate = createAuthenticate(tokenService, tokenRevocationRepository);
     const profileImageStorage = new LocalPlayerProfileImageStorage();
     const identityDocumentStorage = new LocalIdentityDocumentStorage();
     const controller = createAuthController({
@@ -38,15 +41,16 @@ function createAuthModule({ prisma }) {
         }),
         loginUser: new LoginUser({ authRepository, passwordHasher, tokenService }),
         authRepository,
+        tokenRevocationRepository,
     });
 
     return {
         routes: createAuthRouter({
             controller,
             schemas: authSchemas,
-            authenticate: createAuthenticate(tokenService),
+            authenticate,
         }),
-        authenticate: createAuthenticate(tokenService),
+        authenticate,
     };
 }
 

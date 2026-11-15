@@ -1,7 +1,13 @@
 const AuthError = require('../../domain/errors/AuthError');
 const User = require('../../domain/entities/User');
 
-function createAuthController({ registerUser, verifyEmailOtp, loginUser, authRepository }) {
+function createAuthController({
+  registerUser,
+  verifyEmailOtp,
+  loginUser,
+  authRepository,
+  tokenRevocationRepository,
+}) {
   return {
     async register(req, res, next) {
       try {
@@ -49,6 +55,21 @@ function createAuthController({ registerUser, verifyEmailOtp, loginUser, authRep
         return res.status(200).json({
           success: true,
           data: { user: user.toPublicProfile() },
+        });
+      } catch (error) {
+        return next(error);
+      }
+    },
+
+    async logout(req, res, next) {
+      try {
+        await tokenRevocationRepository.revoke(
+          req.auth.tokenId,
+          new Date(req.auth.expiresAt * 1000),
+        );
+        return res.status(200).json({
+          success: true,
+          message: 'Logged out successfully.',
         });
       } catch (error) {
         return next(error);

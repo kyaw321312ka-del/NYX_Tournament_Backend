@@ -99,6 +99,7 @@ model User {
   partnerInvitationsSent     TournamentPartnerInvitation[]  @relation("PartnerInvitationSender")
   partnerInvitationsReceived TournamentPartnerInvitation[]  @relation("PartnerInvitationReceiver")
   paymentsVerified           TournamentPayment[]            @relation("PaymentVerifier")
+  pendingEmailChange         PendingEmailChange?
 
   @@index([roleId])
   @@map("users")
@@ -126,6 +127,30 @@ model PendingRegistration {
 
   @@index([otpExpiresAt])
   @@map("pending_registrations")
+}
+
+model PendingEmailChange {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique @map("user_id")
+  newEmail     String   @unique @map("new_email") @db.VarChar(254)
+  otpHash      String   @map("otp_hash") @db.VarChar(255)
+  otpExpiresAt DateTime @map("otp_expires_at") @db.Timestamp(0)
+  attempts     Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([otpExpiresAt])
+  @@map("pending_email_changes")
+}
+
+model RevokedAccessToken {
+  tokenId   String   @id @map("token_id") @db.VarChar(36)
+  expiresAt DateTime @map("expires_at") @db.Timestamp(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("revoked_access_tokens")
 }
 
 // ==========================================

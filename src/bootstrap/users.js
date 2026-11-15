@@ -3,22 +3,44 @@ const LocalPlayerProfileImageStorage = require('../modules/users/infrastructure/
 const LocalIdentityDocumentStorage = require('../modules/users/infrastructure/services/LocalIdentityDocumentStorage');
 const UpdatePlayerProfileImage = require('../modules/users/application/use-cases/UpdatePlayerProfileImage');
 const UpdateIdentityDocuments = require('../modules/users/application/use-cases/UpdateIdentityDocuments');
+const UpdateUserProfile = require('../modules/users/application/use-cases/UpdateUserProfile');
+const VerifyEmailChange = require('../modules/users/application/use-cases/VerifyEmailChange');
+const OtpService = require('../modules/auth/domain/services/OtpService');
+const EmailOtpSender = require('../modules/auth/infrastructure/services/EmailOtpSender');
+const PasswordHasher = require('../modules/auth/infrastructure/services/PasswordHasher');
 const createUserRouter = require('../modules/users/presentation/routes/userRoutes');
 
 function createUserModule({ prisma, authenticate }) {
+    const userRepository = new PrismaUserRepository(prisma);
+    const profileImageStorage = new LocalPlayerProfileImageStorage();
+    const identityDocumentStorage = new LocalIdentityDocumentStorage();
     const updatePlayerProfileImage = new UpdatePlayerProfileImage({
-        userRepository: new PrismaUserRepository(prisma),
-        imageStorage: new LocalPlayerProfileImageStorage(),
+        userRepository,
+        imageStorage: profileImageStorage,
     });
     const updateIdentityDocuments = new UpdateIdentityDocuments({
-        userRepository: new PrismaUserRepository(prisma),
-        documentStorage: new LocalIdentityDocumentStorage(),
+        userRepository,
+        documentStorage: identityDocumentStorage,
+    });
+    const updateUserProfile = new UpdateUserProfile({
+        userRepository,
+        passwordHasher: new PasswordHasher(),
+        otpService: new OtpService(),
+        emailOtpSender: new EmailOtpSender(),
+        profileImageStorage,
+        identityDocumentStorage,
+    });
+    const verifyEmailChange = new VerifyEmailChange({
+        userRepository,
+        otpService: new OtpService(),
     });
 
     return createUserRouter({
         authenticate,
         updatePlayerProfileImage,
         updateIdentityDocuments,
+        updateUserProfile,
+        verifyEmailChange,
     });
 }
 

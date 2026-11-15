@@ -26,6 +26,11 @@ class RegisterUser {
       throw new AuthError(409, 'An account with this email already exists.');
     }
 
+    const pendingEmailChange = await this.authRepository.findPendingEmailChangeByEmail(dto.email);
+    if (pendingEmailChange) {
+      throw new AuthError(409, 'This email is pending verification for another account.');
+    }
+
     const categories = await this.authRepository.findCategoriesByIds(dto.categoryIds);
     if (categories.length !== dto.categoryIds.length) {
       throw new AuthError(400, 'One or more selected player categories are invalid.');

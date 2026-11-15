@@ -65,9 +65,33 @@ function createUpdateIdentityDocumentsController(updateIdentityDocuments) {
     };
 }
 
+function createUpdateProfileController(updateUserProfile) {
+    return async function updateProfile(req, res, next) {
+        try {
+            const result = await updateUserProfile.execute(req.auth.userId, req.validatedBody, req.files);
+            return res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
+function createVerifyEmailChangeController(verifyEmailChange) {
+    return async function verifyEmailChangeRequest(req, res, next) {
+        try {
+            const user = await verifyEmailChange.execute(req.auth.userId, req.validatedBody);
+            return res.status(200).json({ success: true, data: { user } });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
 module.exports = {
     listUsers,
     getUser,
     createUpdateProfileImageController,
     createUpdateIdentityDocumentsController,
+    createUpdateProfileController,
+    createVerifyEmailChangeController,
 };

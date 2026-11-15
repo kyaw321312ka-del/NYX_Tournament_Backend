@@ -3,6 +3,10 @@ class AuthRepository {
         throw new Error('AuthRepository.findUserByEmail must be implemented');
     }
 
+    async findPendingEmailChangeByEmail() {
+        throw new Error('AuthRepository.findPendingEmailChangeByEmail must be implemented');
+    }
+
     async findUserById() {
         throw new Error('AuthRepository.findUserById must be implemented');
     }

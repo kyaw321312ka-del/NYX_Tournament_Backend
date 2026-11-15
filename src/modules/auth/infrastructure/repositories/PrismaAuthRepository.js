@@ -15,6 +15,13 @@ class PrismaAuthRepository extends AuthRepository {
     });
   }
 
+  async findPendingEmailChangeByEmail(email) {
+    return this.prisma.pendingEmailChange.findFirst({
+      where: { newEmail: email, otpExpiresAt: { gt: new Date() } },
+      select: { id: true },
+    });
+  }
+
   async findUserById(id) {
     return this.prisma.user.findUnique({
       where: { id },

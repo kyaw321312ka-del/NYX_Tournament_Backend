@@ -46,3 +46,53 @@ CORS_ORIGINS=http://localhost:5173,https://frontend.example.com
 Include only trusted frontend origins. Requests without an `Origin` header,
 such as Bruno or server-to-server requests, are also accepted. Cookie
 credentials are not enabled; bearer-token authorization is supported.
+
+## Account updates and logout
+
+Authenticated users can update their profile with `PATCH /api/users/me`.
+Supported fields are `name`, `gender`, `phno`, `categoryIds`, `email`,
+`password`, `profileImage`, `frontIdImg`, and `backIdImg`. Send JSON for
+text-only changes; use `multipart/form-data` when uploading images. In Bruno,
+set `categoryIds` to the JSON text `[1,2]` and provide image fields as files.
+Do not manually set the multipart `Content-Type` header. The profile image is
+limited to 5 MB; each identity document is limited to 10 MB.
+
+Example JSON update:
+
+```http
+PATCH /api/users/me
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "New Name",
+  "gender": "female",
+  "phno": "+959123456789"
+}
+```
+
+To upload all profile fields together in Bruno, choose **Body → Multipart
+Form**, add the text fields `name`, `gender`, `phno`, `password`,
+`currentPassword`, and `categoryIds` as needed, then attach files using
+`profileImage`, `frontIdImg`, and `backIdImg`. Get category IDs from
+`GET /api/auth/categories`. Changing a password or requesting an email change
+requires `currentPassword`.
+
+Email changes take effect only after the new address is verified:
+
+```json
+{
+  "email": "new-address@example.com",
+  "currentPassword": "current-password"
+}
+```
+
+After the API sends a code to the new address, submit it to
+`POST /api/users/me/email/verify` as `{"otp":"123456"}`.
+The code expires after 10 minutes and allows up to five attempts.
+
+Logout with `POST /api/auth/logout` and the current bearer token. The API
+revokes that access token immediately; the client should also remove its
+stored bearer token.

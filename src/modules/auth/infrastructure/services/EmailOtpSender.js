@@ -3,6 +3,24 @@ const AuthError = require('../../domain/errors/AuthError');
 
 class EmailOtpSender {
   async sendVerificationOtp(email, code) {
+    return this.sendOtp(
+      email,
+      code,
+      'Verify your NYX Tournament account',
+      'Your NYX Tournament verification code is',
+    );
+  }
+
+  async sendEmailChangeOtp(email, code) {
+    return this.sendOtp(
+      email,
+      code,
+      'Verify your new NYX Tournament email',
+      'Your NYX Tournament email-change verification code is',
+    );
+  }
+
+  async sendOtp(email, code, subject, message) {
     const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
     const port = Number(process.env.SMTP_PORT || 587);
     const from = SMTP_FROM || SMTP_USER;
@@ -30,9 +48,9 @@ class EmailOtpSender {
     await transport.sendMail({
       from,
       to: email,
-      subject: 'Verify your NYX Tournament account',
-      text: `Your NYX Tournament verification code is ${code}. It expires in 10 minutes.`,
-      html: `<p>Your NYX Tournament verification code is <strong>${code}</strong>.</p><p>It expires in 10 minutes.</p>`,
+      subject,
+      text: `${message} ${code}. It expires in 10 minutes.`,
+      html: `<p>${message} <strong>${code}</strong>.</p><p>It expires in 10 minutes.</p>`,
     });
   }
 }
