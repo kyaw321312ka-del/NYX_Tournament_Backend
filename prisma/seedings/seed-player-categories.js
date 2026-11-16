@@ -11,9 +11,9 @@ const PLAYER_CATEGORIES = [
 ];
 
 async function seedPlayerCategories(database, env) {
-    // if (env.NODE_ENV === 'production') {
-    //     throw new Error('Player categories cannot be seeded in production.');
-    // }
+    if (env.NODE_ENV === 'production') {
+        throw new Error('Player categories cannot be seeded in production.');
+    }
 
     return database.$transaction(async (transaction) => {
         const categories = [];

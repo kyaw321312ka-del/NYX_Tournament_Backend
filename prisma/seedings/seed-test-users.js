@@ -10,9 +10,9 @@ const TEST_USERS = [
 ];
 
 async function seedTestUsers(database, env) {
-    // if (env.NODE_ENV === 'production') {
-    //     throw new Error('Test users cannot be seeded in production.');
-    // }
+    if (env.NODE_ENV === 'production') {
+        throw new Error('Test users cannot be seeded in production.');
+    }
 
     const password = env.TEST_USERS_PASSWORD;
     const passwordBytes = password ? Buffer.byteLength(password, 'utf8') : 0;

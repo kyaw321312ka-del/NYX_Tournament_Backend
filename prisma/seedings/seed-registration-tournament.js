@@ -54,9 +54,9 @@ const DRAW_CONFIGURATIONS = {
 };
 
 async function seedRegistrationTournament(database, env) {
-    // if (env.NODE_ENV === 'production') {
-    //     throw new Error('Registration test tournaments cannot be seeded in production.');
-    // }
+    if (env.NODE_ENV === 'production') {
+        throw new Error('Registration test tournaments cannot be seeded in production.');
+    }
 
     const adminEmail = env.ADMIN_EMAIL?.trim().toLowerCase();
     if (!adminEmail) {
