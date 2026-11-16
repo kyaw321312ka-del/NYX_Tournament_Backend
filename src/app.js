@@ -55,6 +55,7 @@ app.use(
     }),
 );
 app.use('/api/auth', authModule.routes);
+app.use('/auth', authModule.routes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api', paymentMethodRoutes);

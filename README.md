@@ -49,6 +49,10 @@ Include only trusted frontend origins. Requests without an `Origin` header,
 such as Bruno or server-to-server requests, are also accepted. Cookie
 credentials are not enabled; bearer-token authorization is supported.
 
+Authentication routes are available under both `/api/auth` and `/auth` for
+compatibility with existing frontend clients. Other API modules remain under
+`/api`.
+
 ## Account updates and logout
 
 Authenticated users can update their profile with `PATCH /api/users/me`.
