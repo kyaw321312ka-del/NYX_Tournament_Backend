@@ -21,6 +21,14 @@ test('allows configured frontend origins and handles preflight requests', async 
     });
     assert.equal(allowedResponse.headers.get('access-control-allow-origin'), 'http://localhost:5173');
 
+    const productionFrontendResponse = await fetch(url, {
+        headers: { Origin: 'https://www.nyxtournament.com' },
+    });
+    assert.equal(
+        productionFrontendResponse.headers.get('access-control-allow-origin'),
+        'https://www.nyxtournament.com',
+    );
+
     const disallowedResponse = await fetch(url, {
         headers: { Origin: 'http://untrusted.example' },
     });

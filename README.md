@@ -35,12 +35,14 @@ Production migrations must be committed to the repository;
 
 ## Frontend CORS
 
-The API allows frontend requests from `http://localhost:5173` and
-`http://127.0.0.1:5173` by default. Set `CORS_ORIGINS` in `.env` to a
-comma-separated allowlist for other environments, for example:
+The API allows frontend requests from `http://localhost:5173`,
+`http://127.0.0.1:5173`, `https://nyxtournament.com`, and
+`https://www.nyxtournament.com` by default. Add any additional frontend origins
+with `CORS_ORIGINS` in `.env` as a comma-separated list; configured values are
+added to the built-in origins:
 
 ```env
-CORS_ORIGINS=http://localhost:5173,https://frontend.example.com
+CORS_ORIGINS=https://frontend.example.com
 ```
 
 Include only trusted frontend origins. Requests without an `Origin` header,

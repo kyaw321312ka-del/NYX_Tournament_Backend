@@ -8,9 +8,10 @@ const DEFAULT_ALLOWED_ORIGINS = [
 ];
 
 function createCorsMiddleware(origins = process.env.CORS_ORIGINS) {
-    const allowedOrigins = origins
+    const configuredOrigins = origins
         ? origins.split(',').map((origin) => origin.trim()).filter(Boolean)
-        : DEFAULT_ALLOWED_ORIGINS;
+        : [];
+    const allowedOrigins = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins])];
     const allowedOriginSet = new Set(allowedOrigins);
 
     return cors({
