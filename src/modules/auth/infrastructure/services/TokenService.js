@@ -4,7 +4,7 @@ const AuthError = require('../../domain/errors/AuthError');
 
 const TOKEN_ISSUER = 'nyx-tournament-backend';
 const TOKEN_AUDIENCE = 'nyx-tournament-api';
-const TOKEN_LIFETIME = '1h';
+const TOKEN_LIFETIME = '3h';
 
 class TokenService {
   issue(user) {
