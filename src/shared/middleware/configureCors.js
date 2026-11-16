@@ -3,6 +3,8 @@ const cors = require('cors');
 const DEFAULT_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'https://nyxtournament.com',
+    'https://www.nyxtournament.com',
 ];
 
 function createCorsMiddleware(origins = process.env.CORS_ORIGINS) {
