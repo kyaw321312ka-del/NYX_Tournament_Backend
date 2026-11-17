@@ -5,8 +5,7 @@ const PrismaRegistrationRepository = require('./PrismaRegistrationRepository');
 const category = {
     id: 5,
     tournamentId: 9,
-    categoryCode: 'MD',
-    categoryName: 'Men Doubles',
+    eventCategory: { categoryCode: 'MD', name: "Men's Doubles", pairingType: 'doubles' },
     pairingType: 'doubles',
     entryStatus: 'open',
     tournament: { id: 9, title: 'NYX Open', publicationStatus: 'published' },
@@ -166,6 +165,7 @@ test('creates a verified doubles partner invitation with a 48-hour expiry', asyn
     assert.equal(invitation.status, 'pending');
     assert.equal(invitation.invitedBy, inviter.id);
     assert.equal(invitation.invitedUserId, invitedUser.id);
+    assert.equal(invitation.toJSON().category.pairingType, 'doubles');
     assert.equal(invitation.inviter.email, inviter.email);
     assert.equal(invitation.invitedUser.email, invitedUser.email);
     assert.ok(invitation.expiresAt.getTime() >= before + 48 * 60 * 60 * 1000);
@@ -273,7 +273,7 @@ test('maps category participation uniqueness conflicts when accepting an invitat
     test('enforces mixed-gender eligibility when accepting a mixed-doubles invitation', async () => {
         const mixedCategory = {
             ...category,
-            categoryCode: 'XD',
+            eventCategory: { categoryCode: 'XD', name: 'Mixed Doubles', pairingType: 'mixed_doubles' },
             pairingType: 'mixed_doubles',
         };
         const invitation = {
@@ -305,7 +305,7 @@ test('maps category participation uniqueness conflicts when accepting an invitat
     test('rejects same-gender players accepting mixed-doubles invitations', async () => {
         const mixedCategory = {
             ...category,
-            categoryCode: 'XD',
+            eventCategory: { categoryCode: 'XD', name: 'Mixed Doubles', pairingType: 'mixed_doubles' },
             pairingType: 'mixed_doubles',
         };
         const invitation = {

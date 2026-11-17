@@ -32,14 +32,14 @@ class PrismaAuthRepository extends AuthRepository {
   async findCategoriesByIds(ids) {
     return this.prisma.category.findMany({
       where: { id: { in: ids } },
-      select: { id: true, name: true },
+      select: { id: true, categoryCode: true, name: true, pairingType: true },
       orderBy: { id: 'asc' },
     });
   }
 
   async listPlayerCategories() {
     return this.prisma.category.findMany({
-      select: { id: true, name: true },
+      select: { id: true, categoryCode: true, name: true, pairingType: true },
       orderBy: { id: 'asc' },
     });
   }

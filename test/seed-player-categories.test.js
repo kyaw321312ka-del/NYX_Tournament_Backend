@@ -9,25 +9,26 @@ test('upserts the standard badminton event categories', async () => {
             category: {
                 upsert: async (args) => {
                     calls.push(args);
-                    return { id: calls.length, name: args.where.name };
+                    return { id: calls.length, ...args.create };
                 },
             },
         }),
     };
 
     const categories = await seedPlayerCategories(database, {});
-    const names = [
-        "Men's Singles",
-        "Women's Singles",
-        "Men's Doubles",
-        "Women's Doubles",
-        'Mixed Doubles',
+    const categoriesExpected = [
+        { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
+        { categoryCode: 'WS', name: "Women's Singles", pairingType: 'singles' },
+        { categoryCode: 'MD', name: "Men's Doubles", pairingType: 'doubles' },
+        { categoryCode: 'WD', name: "Women's Doubles", pairingType: 'doubles' },
+        { categoryCode: 'XD', name: 'Mixed Doubles', pairingType: 'mixed_doubles' },
     ];
 
-    assert.deepEqual(categories.map(({ name }) => name), names);
-    assert.deepEqual(calls.map(({ where }) => where.name), names);
+    assert.deepEqual(categories, categoriesExpected.map((category, index) => ({ id: index + 1, ...category })));
+    assert.deepEqual(calls.map(({ where }) => where.name), categoriesExpected.map(({ name }) => name));
     assert.ok(calls.every(({ create, update }) => (
-        create.name.length > 0 && Object.keys(update).length === 0
+        create.name.length > 0 && create.categoryCode.length > 0 && create.pairingType.length > 0
+            && update.categoryCode === create.categoryCode && update.pairingType === create.pairingType
     )));
 });
 

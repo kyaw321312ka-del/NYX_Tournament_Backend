@@ -26,11 +26,24 @@ class Tournament {
             } : undefined,
             venues: this.venues,
             rules: this.rules,
-            categories: this.categories?.map((category) => ({
-                ...category,
-                entryFee: category.entryFee?.toString() ?? '0',
-                pointTiers: category.pointTiers,
-            })),
+            categories: this.categories?.map((category) => {
+                const {
+                    eventCategory,
+                    ageGroup,
+                    ...tournamentCategory
+                } = category;
+                return {
+                    ...tournamentCategory,
+                    categoryCode: eventCategory?.categoryCode ?? category.categoryCode,
+                    categoryName: eventCategory?.name ?? category.categoryName,
+                    pairingType: eventCategory?.pairingType ?? category.pairingType,
+                    ageGroup: ageGroup ? {
+                        ...ageGroup,
+                    } : null,
+                    entryFee: category.entryFee?.toString() ?? '0',
+                    pointTiers: category.pointTiers,
+                };
+            }),
         };
     }
 }

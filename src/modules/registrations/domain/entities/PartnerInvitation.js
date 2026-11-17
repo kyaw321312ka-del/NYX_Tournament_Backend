@@ -22,9 +22,9 @@ class PartnerInvitation {
             category: this.category ? {
                 id: this.category.id,
                 tournamentId: this.category.tournamentId,
-                categoryCode: this.category.categoryCode,
-                categoryName: this.category.categoryName,
-                pairingType: this.category.pairingType,
+                categoryCode: this.category.eventCategory?.categoryCode ?? this.category.categoryCode,
+                categoryName: this.category.eventCategory?.name ?? this.category.categoryName,
+                pairingType: this.category.eventCategory?.pairingType ?? this.category.pairingType,
                 tournament: this.category.tournament ? {
                     id: this.category.tournament.id,
                     title: this.category.tournament.title,

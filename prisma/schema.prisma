@@ -160,9 +160,12 @@ model RevokedAccessToken {
 // ==========================================
 
 model Category {
-  id    Int            @id @default(autoincrement())
-  name  String         @unique @db.VarChar(100)
-  users UserCategory[]
+  id                   Int                  @id @default(autoincrement())
+  categoryCode         String?              @unique @map("category_code") @db.VarChar(30)
+  name                 String               @unique @map("category_name") @db.VarChar(100)
+  pairingType          String?              @map("pairing_type") @db.VarChar(30)
+  users                UserCategory[]
+  tournamentCategories TournamentCategory[]
 
   @@map("categories")
 }
@@ -205,6 +208,17 @@ model Tournament {
 
   @@index([createdBy])
   @@map("tournaments")
+}
+
+model AgeGroup {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(50)
+  age  Int
+
+  tournamentCategories TournamentCategory[]
+
+  @@unique([name, age])
+  @@map("age_groups")
 }
 
 // ==========================================
@@ -251,10 +265,9 @@ model TournamentRule {
 model TournamentCategory {
   id                  Int      @id @default(autoincrement())
   tournamentId        Int
-  categoryCode        String   @map("category_code") @db.VarChar(30)
-  categoryName        String   @map("category_name") @db.VarChar(150)
+  categoryId          Int      @map("category_id")
+  ageGroupId          Int?     @map("age_group_id")
   entryFee            Decimal  @default(0) @map("entry_fee") @db.Decimal(12, 2)
-  pairingType         String   @map("pairing_type") @db.VarChar(30)
   seedCount           Int      @default(0) @map("seed_count")
   matchFormat         String   @map("match_format") @db.VarChar(100)
   entryStatus         String   @default("open") @map("entry_status") @db.VarChar(30)
@@ -266,14 +279,17 @@ model TournamentCategory {
   updatedAt           DateTime @updatedAt @map("updated_at")
 
   tournament         Tournament                    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  eventCategory      Category                      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  ageGroup           AgeGroup?                     @relation(fields: [ageGroupId], references: [id], onDelete: Restrict)
   pointTiers         CategoryPointTier[]
   registrations      TournamentRegistration[]
   partnerInvitations TournamentPartnerInvitation[]
   drawConfiguration  TournamentDrawConfiguration?
   draws              TournamentDraw[]
 
-  @@unique([tournamentId, categoryCode])
+  @@unique([tournamentId, categoryId, ageGroupId])
   @@index([tournamentId])
+  @@index([categoryId])
   @@map("tournament_categories")
 }
 

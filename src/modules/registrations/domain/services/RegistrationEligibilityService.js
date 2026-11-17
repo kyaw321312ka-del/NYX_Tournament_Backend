@@ -11,9 +11,15 @@ const CATEGORY_RULES = Object.freeze({
 });
 
 class RegistrationEligibilityService {
+    getCategoryCode(category) {
+        return category.eventCategory?.categoryCode ?? category.categoryCode;
+    }
+
     getCategoryRule(category) {
-        const rule = CATEGORY_RULES[category.categoryCode];
-        if (!rule || rule.pairingType !== category.pairingType) {
+        const categoryCode = this.getCategoryCode(category);
+        const rule = CATEGORY_RULES[categoryCode];
+        const pairingType = category.eventCategory?.pairingType ?? category.pairingType;
+        if (!rule || rule.pairingType !== pairingType) {
             throw new RegistrationError(409, 'Tournament category has no valid eligibility configuration.');
         }
         return rule;
@@ -29,14 +35,49 @@ class RegistrationEligibilityService {
         return this.getCategoryRule(category);
     }
 
-    validatePlayers(category, players) {
+    validatePlayerAges(category, players, asOfDate = new Date()) {
+        const ageGroup = category.ageGroup;
+        if (!ageGroup) return;
+
+        if (Number.isNaN(asOfDate.getTime())) {
+            throw new RegistrationError(409, 'Age eligibility reference date is invalid.');
+        }
+        for (const player of players) {
+            if (!player?.birthday) {
+                throw new RegistrationError(400, 'A birthday is required for age-restricted categories.');
+            }
+
+            const birthday = new Date(player.birthday);
+            if (Number.isNaN(birthday.getTime())) {
+                throw new RegistrationError(400, 'A valid birthday is required for age-restricted categories.');
+            }
+
+            let age = asOfDate.getUTCFullYear() - birthday.getUTCFullYear();
+            const beforeBirthdayThisYear = asOfDate.getUTCMonth() < birthday.getUTCMonth()
+                || (
+                    asOfDate.getUTCMonth() === birthday.getUTCMonth()
+                    && asOfDate.getUTCDate() < birthday.getUTCDate()
+                );
+            if (beforeBirthdayThisYear) age -= 1;
+
+            if (age > ageGroup.age) {
+                throw new RegistrationError(
+                    400,
+                    `Player does not meet the age requirements for age group ${ageGroup.name}.`,
+                );
+            }
+        }
+    }
+
+    validatePlayers(category, players, asOfDate = new Date()) {
         const rule = this.validateCategory(category);
         if (players.length !== rule.genders.length) {
             throw new RegistrationError(
                 400,
-                `${category.categoryCode} registrations require exactly ${rule.genders.length} player(s).`,
+                `${this.getCategoryCode(category)} registrations require exactly ${rule.genders.length} player(s).`,
             );
         }
+        this.validatePlayerAges(category, players, asOfDate);
 
         const genders = [];
         for (const player of players) {
@@ -56,7 +97,7 @@ class RegistrationEligibilityService {
         if (genders.sort().some((gender, index) => gender !== expected[index])) {
             throw new RegistrationError(
                 400,
-                `Players do not meet the gender eligibility requirements for ${category.categoryCode}.`,
+                `Players do not meet the gender eligibility requirements for ${this.getCategoryCode(category)}.`,
             );
         }
     }

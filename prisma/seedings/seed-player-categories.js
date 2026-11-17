@@ -3,11 +3,11 @@ require('dotenv').config();
 const prisma = require('../../src/shared/database/prisma');
 
 const PLAYER_CATEGORIES = [
-    "Men's Singles",
-    "Women's Singles",
-    "Men's Doubles",
-    "Women's Doubles",
-    'Mixed Doubles',
+    { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
+    { categoryCode: 'WS', name: "Women's Singles", pairingType: 'singles' },
+    { categoryCode: 'MD', name: "Men's Doubles", pairingType: 'doubles' },
+    { categoryCode: 'WD', name: "Women's Doubles", pairingType: 'doubles' },
+    { categoryCode: 'XD', name: 'Mixed Doubles', pairingType: 'mixed_doubles' },
 ];
 
 async function seedPlayerCategories(database, env) {
@@ -17,11 +17,14 @@ async function seedPlayerCategories(database, env) {
 
     return database.$transaction(async (transaction) => {
         const categories = [];
-        for (const name of PLAYER_CATEGORIES) {
+        for (const category of PLAYER_CATEGORIES) {
             categories.push(await transaction.category.upsert({
-                where: { name },
-                create: { name },
-                update: {},
+                where: { name: category.name },
+                create: category,
+                update: {
+                    categoryCode: category.categoryCode,
+                    pairingType: category.pairingType,
+                },
             }));
         }
         return categories;

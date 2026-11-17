@@ -35,7 +35,10 @@ Access tokens use HS256 and expire after one hour. Auth endpoints are
 rate-limited per IP.
 
 Fetch the available categories before registration with
-`GET /api/auth/categories`. Seed the standard badminton event categories with
+`GET /api/auth/categories`; each item includes `id`, `categoryCode`, `name`, and
+`pairingType`.
+These records are also the master catalog used by tournament categories. Seed
+the standard badminton event categories with
 `npm run seed:player-categories`. During multipart registration, send one
 `categoryIds` text field per selected category ID; selected categories are
 attached to the account after email verification.

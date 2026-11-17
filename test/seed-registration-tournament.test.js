@@ -8,6 +8,7 @@ function createDatabase({ existingTournament = null, admin = { id: 1, role: { na
         tournamentCreates: [],
         tournamentUpdates: [],
         categoryUpserts: [],
+        categoryDefinitions: [],
         drawConfigurationUpserts: [],
     };
     const tournament = existingTournament ?? {
@@ -21,6 +22,12 @@ function createDatabase({ existingTournament = null, admin = { id: 1, role: { na
             return callback({
                 user: {
                     findUnique: async () => admin,
+                },
+                category: {
+                    upsert: async (args) => {
+                        calls.categoryDefinitions.push(args);
+                        return { id: calls.categoryDefinitions.length + 10, ...args.create };
+                    },
                 },
                 tournament: {
                     findFirst: async () => existingTournament,
@@ -82,22 +89,35 @@ test('creates and publishes a tournament with all gender-eligible categories ope
     assert.equal(calls.tournamentCreates[0].publicationStatus, 'published');
     assert.deepEqual(
         calls.categoryUpserts.map(({ create }) => [
-            create.categoryCode,
-            create.pairingType,
+            create.categoryId,
             create.entryStatus,
             create.entryFee,
         ]),
         [
-            ['MS', 'singles', 'open', 10000],
-            ['WS', 'singles', 'open', 10000],
-            ['MD', 'doubles', 'open', 20000],
-            ['WD', 'doubles', 'open', 20000],
-            ['XD', 'mixed_doubles', 'open', 20000],
+            [11, 'open', 10000],
+            [12, 'open', 10000],
+            [13, 'open', 20000],
+            [14, 'open', 20000],
+            [15, 'open', 20000],
+        ],
+    );
+    assert.deepEqual(
+        calls.categoryDefinitions.map(({ create }) => [
+            create.categoryCode,
+            create.name,
+            create.pairingType,
+        ]),
+        [
+            ['MS', "Men's Singles", 'singles'],
+            ['WS', "Women's Singles", 'singles'],
+            ['MD', "Men's Doubles", 'doubles'],
+            ['WD', "Women's Doubles", 'doubles'],
+            ['XD', 'Mixed Doubles', 'mixed_doubles'],
         ],
     );
     assert.deepEqual(
         calls.drawConfigurationUpserts.map(({ create }) => [
-            calls.categoryUpserts[create.tournamentCategoryId - 1].create.categoryCode,
+            calls.categoryDefinitions[create.tournamentCategoryId - 1].create.categoryCode,
             create.drawFormat,
             create.seedingMethod,
             create.groupCount ?? null,
@@ -110,6 +130,9 @@ test('creates and publishes a tournament with all gender-eligible categories ope
         ],
     );
     assert.equal(result.id, 25);
+    assert.deepEqual(calls.categoryUpserts[0].where, {
+        tournamentId_categoryId: { tournamentId: 25, categoryId: 11 },
+    });
 });
 
 test('reuses and publishes an existing seeded tournament idempotently', async () => {
@@ -127,7 +150,7 @@ test('reuses and publishes an existing seeded tournament idempotently', async ()
         data: { publicationStatus: 'published' },
     });
     assert.ok(calls.categoryUpserts.every(({ where }) => (
-        where.tournamentId_categoryCode.tournamentId === 33
+        where.tournamentId_categoryId.tournamentId === 33
     )));
     assert.equal(calls.drawConfigurationUpserts.length, 3);
 });

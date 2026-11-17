@@ -9,9 +9,108 @@ const tournamentInclude = {
     rules: { orderBy: { sortOrder: 'asc' } },
     categories: {
         orderBy: { id: 'asc' },
-        include: { pointTiers: { orderBy: { position: 'asc' } } },
+        include: {
+            eventCategory: { select: { categoryCode: true, name: true, pairingType: true } },
+            ageGroup: {
+                select: {
+                    id: true,
+                    name: true,
+                    age: true,
+                },
+            },
+            pointTiers: { orderBy: { position: 'asc' } },
+        },
     },
 };
+
+function normalizeCategoryName(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function normalizeAgeGroupName(name) {
+    return name.toLowerCase();
+}
+
+async function resolveTournamentCategories(database, categories) {
+    if (!categories.length) return [];
+
+    const definitions = await database.category.findMany({
+        where: { categoryCode: { in: [...new Set(categories.map(({ categoryCode }) => categoryCode))] } },
+        select: { id: true, categoryCode: true, name: true, pairingType: true },
+    });
+    const definitionsByCode = new Map(
+        definitions.map((definition) => [definition.categoryCode, definition]),
+    );
+
+    const ageGroupsByName = new Map();
+    for (const { ageGroup } of categories) {
+        if (!ageGroup) continue;
+        const key = JSON.stringify([normalizeAgeGroupName(ageGroup.name), ageGroup.age]);
+        const existing = ageGroupsByName.get(key);
+        ageGroupsByName.set(key, ageGroup);
+    }
+
+    const ageGroupIds = new Map();
+    for (const [key, ageGroup] of ageGroupsByName) {
+        const record = await database.ageGroup.upsert({
+            where: {
+                name_age: { name: ageGroup.name, age: ageGroup.age },
+            },
+            create: {
+                name: ageGroup.name,
+                age: ageGroup.age,
+            },
+            update: {},
+        });
+        ageGroupIds.set(key, record.id);
+    }
+
+    const resolvedCategories = categories.map(({
+        categoryCode,
+        categoryName,
+        pairingType,
+        ageGroup,
+        ...category
+    }) => {
+        const definition = definitionsByCode.get(categoryCode);
+        if (!definition) {
+            throw new TournamentError(400, `Unknown tournament category code: ${categoryCode}.`);
+        }
+        if (normalizeCategoryName(categoryName) !== normalizeCategoryName(definition.name)) {
+            throw new TournamentError(400, `Category name does not match code ${categoryCode}.`);
+        }
+        if (pairingType !== definition.pairingType) {
+            throw new TournamentError(400, `Pairing type does not match category ${categoryCode}.`);
+        }
+
+        return {
+            ...category,
+            categoryId: definition.id,
+            ageGroupId: ageGroup
+                ? ageGroupIds.get(JSON.stringify([normalizeAgeGroupName(ageGroup.name), ageGroup.age]))
+                : null,
+        };
+    });
+
+    const categoryKeys = new Set();
+    for (const [index, category] of resolvedCategories.entries()) {
+        const key = JSON.stringify([
+            category.categoryId,
+            categories[index].ageGroup
+                ? JSON.stringify([
+                    normalizeAgeGroupName(categories[index].ageGroup.name),
+                    categories[index].ageGroup.age,
+                ])
+                : null,
+        ]);
+        if (categoryKeys.has(key)) {
+            throw new TournamentError(400, 'A category cannot be added more than once with the same age group.');
+        }
+        categoryKeys.add(key);
+    }
+
+    return resolvedCategories;
+}
 
 class PrismaTournamentRepository extends TournamentRepository {
     constructor(prisma) {
@@ -20,29 +119,39 @@ class PrismaTournamentRepository extends TournamentRepository {
     }
 
     async create(createdBy, data) {
-        const record = await this.prisma.tournament.create({
-            data: {
-                createdBy,
-                title: data.title,
-                bannerUrl: data.bannerUrl,
-                description: data.description,
-                startDate: new Date(data.startDate),
-                endDate: new Date(data.endDate),
-                rankingPointsPool: data.rankingPointsPool,
-                venues: data.venues.length ? { create: data.venues } : undefined,
-                rules: data.rules.length ? { create: data.rules } : undefined,
-                categories: data.categories.length ? {
-                    create: data.categories.map((category) => ({
-                        ...category,
-                        pointTiers: category.pointTiers?.length
-                            ? { create: category.pointTiers }
-                            : undefined,
-                    })),
-                } : undefined,
-            },
-            include: tournamentInclude,
+        return this.prisma.$transaction(async (transaction) => {
+            const created = await transaction.tournament.create({
+                data: {
+                    createdBy,
+                    title: data.title,
+                    bannerUrl: data.bannerUrl,
+                    description: data.description,
+                    startDate: new Date(data.startDate),
+                    endDate: new Date(data.endDate),
+                    rankingPointsPool: data.rankingPointsPool,
+                    venues: data.venues.length ? { create: data.venues } : undefined,
+                    rules: data.rules.length ? { create: data.rules } : undefined,
+                },
+                select: { id: true },
+            });
+            const categories = await resolveTournamentCategories(transaction, data.categories);
+            for (const category of categories) {
+                const { pointTiers, ...categoryData } = category;
+                await transaction.tournamentCategory.create({
+                    data: {
+                        tournamentId: created.id,
+                        ...categoryData,
+                        pointTiers: pointTiers?.length ? { create: pointTiers } : undefined,
+                    },
+                });
+            }
+
+            const record = await transaction.tournament.findUnique({
+                where: { id: created.id },
+                include: tournamentInclude,
+            });
+            return Tournament.fromRecord(record);
         });
-        return Tournament.fromRecord(record);
     }
 
     async findById(id) {
@@ -118,8 +227,11 @@ class PrismaTournamentRepository extends TournamentRepository {
                 ['categories', 'tournamentCategory'],
             ]) {
                 if (data[field] !== undefined) {
+                    const items = field === 'categories'
+                        ? await resolveTournamentCategories(transaction, data.categories)
+                        : data[field];
                     await transaction[model].deleteMany({ where: { tournamentId: id } });
-                    createData[field] = { create: data[field].map((item) => {
+                    createData[field] = { create: items.map((item) => {
                         if (field !== 'categories') return item;
                         const { pointTiers, ...category } = item;
                         return {

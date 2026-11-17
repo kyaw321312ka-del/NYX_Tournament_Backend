@@ -17,6 +17,32 @@ and `categories`. Set `entryFee` on each category (it defaults to `0`), allowing
 singles and doubles events to have different prices. A category also accepts
 `pairingType` (`singles`, `doubles`, or `mixed_doubles`), `entryStatus` (`open`,
 `closing_soon`, or `closed`), and optional `pointTiers`.
+The shared category catalog is returned by `GET /api/auth/categories`; use its
+`categoryCode`, `name`, and `pairingType` as `categoryCode`, `categoryName`,
+and `pairingType`. Tournament categories store tournament-specific settings
+and refer to that shared catalog.
+
+To restrict a tournament category by age, include an `ageGroup` object on the
+category. The shared `age_groups` table stores only `id`, `name`, and the
+inclusive maximum `age`. The player's age is calculated on the date they
+register; categories without an age group remain unrestricted. For example:
+
+```json
+{
+  "categoryCode": "MS",
+  "categoryName": "Men's Singles",
+  "pairingType": "singles",
+  "entryFee": 2500,
+  "matchFormat": "Best of 3 games",
+  "ageGroup": {
+    "name": "U12",
+    "age": 12
+  }
+}
+```
+
+A player must have a birthday on their profile and be no older than the
+group's maximum age when they register or accept a doubles invitation.
 
 Create or update a tournament with its banner in the same request by sending
 `multipart/form-data` to `POST /api/tournaments` or `PUT

@@ -14,16 +14,18 @@ const eligibilityService = new RegistrationEligibilityService();
 const partnerInvitationInclude = {
     category: {
         include: {
+            eventCategory: true,
+            ageGroup: true,
             tournament: {
                 select: { id: true, title: true },
             },
         },
     },
     inviter: {
-        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true },
+        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true, birthday: true },
     },
     invitedUser: {
-        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true },
+        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true, birthday: true },
     },
 };
 
@@ -66,6 +68,8 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             const category = await transaction.tournamentCategory.findUnique({
                 where: { id: categoryId },
                 include: {
+                    eventCategory: true,
+                    ageGroup: true,
                     tournament: {
                         select: { publicationStatus: true },
                     },
@@ -75,9 +79,9 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             if (!category) {
                 throw new RegistrationError(404, 'Tournament category not found.');
             }
-            eligibilityService.validateCategory(category);
+            const categoryRule = eligibilityService.validateCategory(category);
 
-            if (category.pairingType !== PairingType.SINGLES) {
+            if (categoryRule.pairingType !== PairingType.SINGLES) {
                 throw new RegistrationError(
                     400,
                     'Doubles registrations require a partner invitation accepted by both players.',
@@ -90,7 +94,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
 
             const player = await transaction.user.findUnique({
                 where: { id: ownerId },
-                select: { id: true, gender: true, emailVerifiedAt: true },
+                select: { id: true, gender: true, emailVerifiedAt: true, birthday: true },
             });
             eligibilityService.validatePlayers(category, [player]);
 
@@ -131,7 +135,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     },
                 },
                 include: {
-                    category: true,
+                    category: { include: { eventCategory: true } },
                     creator: {
                         select: { id: true, name: true },
                     },
@@ -164,15 +168,19 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             const [category, inviter, invitedUser] = await Promise.all([
                 transaction.tournamentCategory.findUnique({
                     where: { id: categoryId },
-                    include: { tournament: { select: { publicationStatus: true } } },
+                    include: {
+                        eventCategory: true,
+                        ageGroup: true,
+                        tournament: { select: { publicationStatus: true } },
+                    },
                 }),
                 transaction.user.findUnique({
                     where: { id: inviterId },
-                    select: { id: true, emailVerifiedAt: true },
+                    select: { id: true, emailVerifiedAt: true, birthday: true, gender: true },
                 }),
                 transaction.user.findUnique({
                     where: { email },
-                    select: { id: true, email: true, emailVerifiedAt: true },
+                    select: { id: true, email: true, emailVerifiedAt: true, birthday: true, gender: true },
                 }),
             ]);
 
@@ -193,6 +201,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
             if (inviterId === invitedUser.id) {
                 throw new RegistrationError(400, 'You cannot invite yourself as a partner.');
             }
+            eligibilityService.validatePlayerAges(category, [inviter, invitedUser]);
 
             const playerIds = [inviterId, invitedUser.id];
             const existingRegistration = await transaction.tournamentRegistration.findFirst({
@@ -397,7 +406,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     },
                 },
                 include: {
-                    category: true,
+                    category: { include: { eventCategory: true } },
                     creator: { select: { id: true, name: true } },
                     status: true,
                     payments: { orderBy: { createdAt: 'desc' } },
@@ -511,7 +520,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
         const registration = await this.prisma.tournamentRegistration.findUnique({
             where: { id: Number(id) },
             include: {
-                category: true,
+                category: { include: { eventCategory: true } },
                 creator: { select: { id: true, name: true } },
                 status: true,
                 payments: { orderBy: { createdAt: 'desc' } },
@@ -548,7 +557,7 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                     registeredBy: ownerId,
                 },
                 include: {
-                    category: true,
+                    category: { include: { eventCategory: true } },
                     creator: { select: { id: true, name: true } },
                     status: true,
                     payments: { orderBy: { createdAt: 'desc' } },

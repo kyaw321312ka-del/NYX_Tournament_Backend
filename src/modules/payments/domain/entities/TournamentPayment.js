@@ -32,8 +32,10 @@ class TournamentPayment {
                 status: this.registration.status?.name ?? null,
                 category: this.registration.category ? {
                     id: this.registration.category.id,
-                    categoryCode: this.registration.category.categoryCode,
-                    categoryName: this.registration.category.categoryName,
+                    categoryCode: this.registration.category.eventCategory?.categoryCode
+                        ?? this.registration.category.categoryCode,
+                    categoryName: this.registration.category.eventCategory?.name
+                        ?? this.registration.category.categoryName,
                     entryFee: this.registration.category.entryFee.toString(),
                     tournament: this.registration.category.tournament,
                 } : null,

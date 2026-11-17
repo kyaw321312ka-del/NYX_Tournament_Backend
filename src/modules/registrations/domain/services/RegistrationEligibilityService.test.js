@@ -9,9 +9,10 @@ const category = (categoryCode, pairingType) => ({
     entryStatus: 'open',
     tournament: { publicationStatus: 'published' },
 });
-const player = (gender, verified = true) => ({
+const player = (gender, verified = true, birthday = null) => ({
     gender,
     emailVerifiedAt: verified ? new Date() : null,
+    birthday: birthday ? new Date(`${birthday}T00:00:00.000Z`) : null,
 });
 
 test('applies gender and pairing rules to all supported category codes', () => {
@@ -34,6 +35,16 @@ test('normalizes legacy gender casing for eligibility checks', () => {
         category('MS', 'singles'),
         [player(' Male ')],
     ));
+});
+
+test('uses the shared category pairing type for eligibility checks', () => {
+    assert.throws(
+        () => service.validateCategory({
+            ...category('MS', 'singles'),
+            eventCategory: { categoryCode: 'MS', pairingType: 'doubles' },
+        }),
+        { statusCode: 409 },
+    );
 });
 
 test('rejects invalid pairings, gender combinations, unverified players, and unsupported gender values', () => {
@@ -77,4 +88,53 @@ test('rejects categories that are closed or unpublished', () => {
         }),
         { statusCode: 409 },
     );
+});
+
+test('enforces the inclusive maximum age on the registration date', () => {
+    const restrictedCategory = {
+        ...category('MS', 'singles'),
+        ageGroup: {
+            name: 'U12',
+            age: 12,
+        },
+    };
+    const registrationDate = new Date('2027-01-01T00:00:00.000Z');
+
+    assert.doesNotThrow(() => service.validatePlayers(
+        restrictedCategory,
+        [player('male', true, '2015-01-01')],
+        registrationDate,
+    ));
+    assert.doesNotThrow(() => service.validatePlayers(
+        restrictedCategory,
+        [player('male', true, '2014-12-31')],
+        registrationDate,
+    ));
+    assert.throws(
+        () => service.validatePlayers(
+            restrictedCategory,
+            [player('male', true, '2014-01-01')],
+            registrationDate,
+        ),
+        { statusCode: 400, message: /age requirements/ },
+    );
+});
+
+test('requires a birthday for age-restricted categories but not unrestricted categories', () => {
+    const restrictedCategory = {
+        ...category('MS', 'singles'),
+        ageGroup: {
+            name: 'U12',
+            age: 12,
+        },
+    };
+
+    assert.throws(
+        () => service.validatePlayers(restrictedCategory, [player('male')]),
+        { statusCode: 400, message: /birthday is required/ },
+    );
+    assert.doesNotThrow(() => service.validatePlayers(
+        category('MS', 'singles'),
+        [player('male')],
+    ));
 });

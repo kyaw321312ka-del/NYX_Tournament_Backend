@@ -27,8 +27,11 @@ function paymentRecord(overrides = {}) {
             status: { name: 'pending' },
             category: {
                 id: 3,
-                categoryCode: 'MS',
-                categoryName: 'Men Singles',
+                eventCategory: {
+                    categoryCode: 'MS',
+                    name: "Men's Singles",
+                    pairingType: 'singles',
+                },
                 entryFee: '50000.00',
                 tournament: { id: 2, title: 'NYX Open' },
             },

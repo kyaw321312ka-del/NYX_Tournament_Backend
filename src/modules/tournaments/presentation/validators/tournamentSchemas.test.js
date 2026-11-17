@@ -60,6 +60,32 @@ test('creation rejects invalid dates, pairing types, and registration states', (
     }).success, false);
 });
 
+test('validates age-group maximum age without a category cutoff date', () => {
+    const category = {
+        categoryCode: 'MS',
+        categoryName: 'Men Singles',
+        pairingType: 'singles',
+        matchFormat: 'Best of 3',
+        ageGroup: {
+            name: 'U12',
+            age: 12,
+        },
+    };
+
+    assert.equal(createTournamentSchema.safeParse({
+        ...validTournament,
+        categories: [category],
+    }).success, true);
+
+    assert.equal(createTournamentSchema.safeParse({
+        ...validTournament,
+        categories: [{
+            ...category,
+            ageGroup: { ...category.ageGroup, age: 121 },
+        }],
+    }).success, false);
+});
+
 test('updates require at least one valid field', () => {
     assert.equal(updateTournamentSchema.safeParse({}).success, false);
     assert.deepEqual(updateTournamentSchema.parse({ title: 'Updated Open' }), {

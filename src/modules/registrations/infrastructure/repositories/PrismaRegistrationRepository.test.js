@@ -5,7 +5,8 @@ const PrismaRegistrationRepository = require('./PrismaRegistrationRepository');
 function createRepository({
     category = {
         id: 3,
-        categoryCode: 'MS',
+        eventCategory: { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
+        ageGroup: null,
         entryStatus: 'open',
         pairingType: 'singles',
         tournament: { publicationStatus: 'published' },
@@ -101,6 +102,29 @@ test('creates a pending singles registration with the authenticated user as regi
     assert.deepEqual(calls.duplicates[0].where.status, {
         is: { name: { in: ['pending', 'confirmed'] } },
     });
+    assert.equal(calls.category[0].include.ageGroup, true);
+});
+
+test('requires a birthday before registering in an age-restricted category', async () => {
+    const { repository, calls } = createRepository({
+        category: {
+            id: 3,
+            eventCategory: { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
+            ageGroup: {
+                name: 'U12',
+            },
+            entryStatus: 'open',
+            pairingType: 'singles',
+            tournament: { publicationStatus: 'published' },
+        },
+        player: { id: 7, gender: 'male', emailVerifiedAt: new Date(), birthday: null },
+    });
+
+    await assert.rejects(
+        repository.create({ userId: 7, tournamentCategoryId: 3 }),
+        (error) => error.statusCode === 400 && /birthday is required/.test(error.message),
+    );
+    assert.equal(calls.create.length, 0);
 });
 
 test('maps database uniqueness conflicts to a registration conflict response', async () => {
@@ -118,7 +142,7 @@ test('requires a partner invitation rather than allowing a direct doubles regist
     const { repository, calls } = createRepository({
         category: {
             id: 3,
-            categoryCode: 'MD',
+            eventCategory: { categoryCode: 'MD', name: "Men's Doubles", pairingType: 'doubles' },
             entryStatus: 'open',
             pairingType: 'doubles',
             tournament: { publicationStatus: 'published' },
@@ -142,7 +166,7 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
             name: 'unpublished tournament',
             category: {
                 id: 3,
-                categoryCode: 'MS',
+                eventCategory: { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
                 entryStatus: 'open',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'draft' },
@@ -155,7 +179,7 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
             name: 'closed category',
             category: {
                 id: 3,
-                categoryCode: 'MS',
+                eventCategory: { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
                 entryStatus: 'closed',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'published' },
@@ -168,7 +192,7 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
             name: 'singles registration with multiple players',
             category: {
                 id: 3,
-                categoryCode: 'MS',
+                eventCategory: { categoryCode: 'MS', name: "Men's Singles", pairingType: 'singles' },
                 entryStatus: 'open',
                 pairingType: 'singles',
                 tournament: { publicationStatus: 'published' },
@@ -181,7 +205,7 @@ test('rejects unpublished, closed, incorrectly sized, and duplicate registration
             name: 'doubles category without accepted partner invitation',
             category: {
                 id: 3,
-                categoryCode: 'MD',
+                eventCategory: { categoryCode: 'MD', name: "Men's Doubles", pairingType: 'doubles' },
                 entryStatus: 'open',
                 pairingType: 'doubles',
                 tournament: { publicationStatus: 'published' },

@@ -23,6 +23,11 @@ const rule = z.object({
     sortOrder: z.number().int().min(0).default(0),
 });
 
+const ageGroup = z.object({
+    name: z.string().trim().min(1).max(50),
+    age: z.number().int().min(0).max(120),
+}).strict();
+
 const category = z.object({
     categoryCode: z.string().trim().min(1).max(30),
     categoryName: z.string().trim().min(1).max(150),
@@ -40,6 +45,7 @@ const category = z.object({
     pointsPool: z.number().int().min(0).default(0),
     shuttleName: z.string().trim().max(150).optional().nullable(),
     shuttleSpeed: z.string().trim().max(30).optional().nullable(),
+    ageGroup: ageGroup.nullable().optional(),
     pointTiers: z.array(pointTier).default([]),
 });
 

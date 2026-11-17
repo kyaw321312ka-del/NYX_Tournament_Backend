@@ -7,6 +7,7 @@ const paymentInclude = {
             status: { select: { name: true } },
             category: {
                 include: {
+                    eventCategory: true,
                     tournament: { select: { id: true, title: true } },
                 },
             },

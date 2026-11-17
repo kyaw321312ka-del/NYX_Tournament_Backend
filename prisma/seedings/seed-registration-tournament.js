@@ -6,25 +6,25 @@ const TOURNAMENT_TITLE = 'NYX Registration Test Open 2027';
 const CATEGORIES = [
     {
         categoryCode: 'MS',
-        categoryName: 'Men Singles',
+        categoryName: "Men's Singles",
         entryFee: 10000,
         pairingType: 'singles',
     },
     {
         categoryCode: 'WS',
-        categoryName: 'Women Singles',
+        categoryName: "Women's Singles",
         entryFee: 10000,
         pairingType: 'singles',
     },
     {
         categoryCode: 'MD',
-        categoryName: 'Men Doubles',
+        categoryName: "Men's Doubles",
         entryFee: 20000,
         pairingType: 'doubles',
     },
     {
         categoryCode: 'WD',
-        categoryName: 'Women Doubles',
+        categoryName: "Women's Doubles",
         entryFee: 20000,
         pairingType: 'doubles',
     },
@@ -99,24 +99,37 @@ async function seedRegistrationTournament(database, env) {
             });
         }
 
+        const categoryIds = [];
         for (const category of CATEGORIES) {
+            const categoryDefinition = await transaction.category.upsert({
+                where: { categoryCode: category.categoryCode },
+                create: {
+                    categoryCode: category.categoryCode,
+                    name: category.categoryName,
+                    pairingType: category.pairingType,
+                },
+                update: {
+                    name: category.categoryName,
+                    pairingType: category.pairingType,
+                },
+            });
+            categoryIds.push(categoryDefinition.id);
             const categoryRecord = await transaction.tournamentCategory.upsert({
                 where: {
-                    tournamentId_categoryCode: {
+                    tournamentId_categoryId: {
                         tournamentId: tournament.id,
-                        categoryCode: category.categoryCode,
+                        categoryId: categoryDefinition.id,
                     },
                 },
                 create: {
                     tournamentId: tournament.id,
-                    ...category,
+                    categoryId: categoryDefinition.id,
+                    entryFee: category.entryFee,
                     entryStatus: 'open',
                     matchFormat: 'Best of 3 games',
                 },
                 update: {
-                    categoryName: category.categoryName,
                     entryFee: category.entryFee,
-                    pairingType: category.pairingType,
                     entryStatus: 'open',
                 },
             });
@@ -138,16 +151,17 @@ async function seedRegistrationTournament(database, env) {
             where: { id: tournament.id },
             include: {
                 categories: {
-                    where: { categoryCode: { in: CATEGORIES.map(({ categoryCode }) => categoryCode) } },
-                    orderBy: { categoryCode: 'asc' },
+                    where: { categoryId: { in: categoryIds } },
+                    orderBy: { categoryId: 'asc' },
                     select: {
                         id: true,
-                        categoryCode: true,
-                        categoryName: true,
+                        categoryId: true,
                         entryFee: true,
-                        pairingType: true,
                         entryStatus: true,
                         drawConfiguration: true,
+                        eventCategory: {
+                            select: { categoryCode: true, name: true, pairingType: true },
+                        },
                     },
                 },
             },
