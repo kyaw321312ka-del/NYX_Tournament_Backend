@@ -38,6 +38,7 @@ class UpdateUserProfile {
         const update = {
             name: input.name,
             gender: input.gender,
+            birthday: input.birthday ? new Date(`${input.birthday}T00:00:00.000Z`) : undefined,
             phno: input.phno,
             passwordHash: input.password
                 ? await this.passwordHasher.hash(input.password)

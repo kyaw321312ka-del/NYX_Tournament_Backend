@@ -21,6 +21,11 @@ test('normalizes email and empty phone values', () => {
     assert.equal(result.phno, null);
 });
 
+test('accepts a past birthday on profile updates and rejects future birthdays', () => {
+    assert.equal(updateProfileSchema.safeParse({ birthday: '1995-08-12' }).success, true);
+    assert.equal(updateProfileSchema.safeParse({ birthday: '2995-08-12' }).success, false);
+});
+
 test('requires a six-digit email-change code', () => {
     assert.equal(verifyEmailChangeSchema.safeParse({ otp: '12345' }).success, false);
     assert.equal(verifyEmailChangeSchema.safeParse({ otp: '123456' }).success, true);

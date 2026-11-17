@@ -55,8 +55,12 @@ compatibility with existing frontend clients. Other API modules remain under
 
 ## Account updates and logout
 
+New registrations must include `birthday` as a date-only `YYYY-MM-DD` value.
+The date cannot be in the future. Existing accounts without a birthday can
+continue using the API and add it through the profile update endpoint.
+
 Authenticated users can update their profile with `PATCH /api/users/me`.
-Supported fields are `name`, `gender`, `phno`, `categoryIds`, `email`,
+Supported fields are `name`, `gender`, `birthday`, `phno`, `categoryIds`, `email`,
 `password`, `profileImage`, `frontIdImg`, and `backIdImg`. Send JSON for
 text-only changes; use `multipart/form-data` when uploading images. In Bruno,
 set `categoryIds` to the JSON text `[1,2]` and provide image fields as files.
@@ -75,6 +79,7 @@ Content-Type: application/json
 {
   "name": "New Name",
   "gender": "female",
+  "birthday": "1995-08-12",
   "phno": "+959123456789"
 }
 ```

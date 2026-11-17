@@ -86,6 +86,7 @@ class PrismaAuthRepository extends AuthRepository {
           roleId: role.id,
           name: pending.name,
           gender: pending.gender,
+          birthday: pending.birthday,
           phno: pending.phno,
           email: pending.email,
           passwordHash: pending.passwordHash,

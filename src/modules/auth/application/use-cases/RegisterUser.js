@@ -59,6 +59,7 @@ class RegisterUser {
       await this.authRepository.savePendingRegistration({
         name: dto.name,
         gender: dto.gender,
+        birthday: new Date(`${dto.birthday}T00:00:00.000Z`),
         phno: dto.phno,
         email: dto.email,
         passwordHash,

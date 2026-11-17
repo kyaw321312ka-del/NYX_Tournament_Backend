@@ -16,6 +16,10 @@ const genderSchema = z.preprocess(
     error: 'Choose a valid gender.',
   }),
 );
+const birthdaySchema = z.iso.date().refine(
+  (birthday) => birthday <= new Date().toISOString().slice(0, 10),
+  'Birthday cannot be in the future.',
+);
 
 const categoryIdsSchema = z.preprocess(
   (value) => (typeof value === 'string' ? [value] : value),
@@ -27,6 +31,7 @@ const categoryIdsSchema = z.preprocess(
 const register = z.object({
   name: z.string().trim().min(1, 'Name is required.').max(150, 'Name must be no longer than 150 characters.'),
   gender: genderSchema,
+  birthday: birthdaySchema,
   phno: z.string().trim().max(30, 'Phone number must be no longer than 30 characters.')
     .optional()
     .transform((phone) => phone || null),

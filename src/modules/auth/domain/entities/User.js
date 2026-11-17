@@ -12,6 +12,9 @@ class User {
       id: this.id,
       name: this.name,
       gender: this.gender,
+      birthday: this.birthday instanceof Date
+        ? this.birthday.toISOString().slice(0, 10)
+        : this.birthday ?? null,
       email: this.email,
       phno: this.phno,
       profileImageUrl: this.profileImageUrl,

@@ -13,6 +13,7 @@ function createUseCase({ existingEmail = 'old@example.com', emailOwner = null } 
         id: 7,
         name: 'Updated Player',
         gender: 'male',
+        birthday: null,
         email: existingEmail,
         phno: null,
         profileImageUrl: null,
@@ -85,10 +86,20 @@ test('updates profile fields without requiring a password confirmation', async (
         ['updateProfile', 7, {
             name: 'Updated Player',
             gender: undefined,
+            birthday: undefined,
             phno: null,
             passwordHash: undefined,
         }, undefined, undefined],
     ]);
+});
+
+test('updates the birthday as a date-only value', async () => {
+    const { useCase, calls } = createUseCase();
+
+    const result = await useCase.execute(7, { birthday: '1995-08-12' });
+
+    assert.equal(result.user.birthday, '1995-08-12');
+    assert.equal(calls[0][2].birthday.toISOString(), '1995-08-12T00:00:00.000Z');
 });
 
 test('updates categories and all submitted profile image files', async () => {

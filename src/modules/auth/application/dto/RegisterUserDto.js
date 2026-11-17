@@ -1,7 +1,8 @@
 class RegisterUserDto {
-  constructor({ name, gender, phno, email, password, categoryIds }) {
+  constructor({ name, gender, birthday, phno, email, password, categoryIds }) {
     this.name = name.trim();
     this.gender = gender;
+    this.birthday = birthday;
     this.phno = phno || null;
     this.email = email.trim().toLowerCase();
     this.password = password;
