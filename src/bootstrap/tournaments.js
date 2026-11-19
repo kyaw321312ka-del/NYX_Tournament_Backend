@@ -9,6 +9,7 @@ const LocalTournamentBannerStorage = require('../modules/tournaments/infrastruct
 const createTournamentController = require('../modules/tournaments/presentation/controllers/TournamentController');
 const createTournamentRouter = require('../modules/tournaments/presentation/routes/tournamentRoutes');
 const tournamentSchemas = require('../modules/tournaments/presentation/validators/tournamentSchemas');
+const createRequireAdmin = require('../shared/middleware/requireAdmin');
 
 function createTournamentModule({ prisma, authenticate }) {
     const tournamentRepository = new PrismaTournamentRepository(prisma);
@@ -26,6 +27,7 @@ function createTournamentModule({ prisma, authenticate }) {
         controller,
         schemas: tournamentSchemas,
         authenticate,
+        requireAdmin: createRequireAdmin(prisma),
         optionalAuthenticate(req, res, next) {
             if (!req.get('authorization')) return next();
             return authenticate(req, res, next);

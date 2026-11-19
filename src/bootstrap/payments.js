@@ -5,6 +5,7 @@ const createPaymentController = require('../modules/payments/presentation/contro
 const createPaymentRouter = require('../modules/payments/presentation/routes/paymentRoutes');
 const paymentSchemas = require('../modules/payments/presentation/validators/paymentSchemas');
 const createRequireAdmin = require('../shared/middleware/requireAdmin');
+const createRequirePlayer = require('../shared/middleware/requirePlayer');
 
 function createPaymentModule({ prisma, authenticate }) {
     const tournamentPayments = new TournamentPayments({
@@ -17,6 +18,7 @@ function createPaymentModule({ prisma, authenticate }) {
         schemas: paymentSchemas,
         authenticate,
         requireAdmin: createRequireAdmin(prisma),
+        requirePlayer: createRequirePlayer(prisma),
     });
 }
 

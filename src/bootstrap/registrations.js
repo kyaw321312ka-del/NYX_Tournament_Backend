@@ -11,6 +11,7 @@ const CancelPartnerInvitation = require('../modules/registrations/application/us
 const createRegistrationController = require('../modules/registrations/presentation/controllers/RegistrationController');
 const createRegistrationRouter = require('../modules/registrations/presentation/routes/registrationRoutes');
 const registrationSchemas = require('../modules/registrations/presentation/validators/registrationSchemas');
+const createRequirePlayer = require('../shared/middleware/requirePlayer');
 
 function createRegistrationModule({ prisma, authenticate }) {
     const registrationRepository = new PrismaRegistrationRepository(prisma);
@@ -30,6 +31,7 @@ function createRegistrationModule({ prisma, authenticate }) {
         controller,
         schemas: registrationSchemas,
         authenticate,
+        requirePlayer: createRequirePlayer(prisma),
     });
 }
 

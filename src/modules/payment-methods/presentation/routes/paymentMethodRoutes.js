@@ -6,10 +6,11 @@ function createPaymentMethodRouter({
     schemas,
     authenticate,
     requireAdmin,
+    requirePlayer,
 }) {
     const router = express.Router();
 
-    router.get('/payment-methods', authenticate, controller.listActive);
+    router.get('/payment-methods', authenticate, requirePlayer, controller.listActive);
     router.post(
         '/admin/payment-methods',
         authenticate,

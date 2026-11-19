@@ -2,12 +2,13 @@ const express = require('express');
 const validate = require('../../../../shared/middleware/validateRequest');
 const parsePaymentProof = require('../middleware/parsePaymentProof');
 
-function createPaymentRouter({ controller, schemas, authenticate, requireAdmin }) {
+function createPaymentRouter({ controller, schemas, authenticate, requireAdmin, requirePlayer }) {
     const router = express.Router();
 
     router.post(
         '/registrations/:registrationId/payments',
         authenticate,
+        requirePlayer,
         validate(schemas.registrationIdSchema, 'params'),
         parsePaymentProof,
         validate(schemas.submitPaymentSchema),
@@ -16,6 +17,7 @@ function createPaymentRouter({ controller, schemas, authenticate, requireAdmin }
     router.get(
         '/payments/my',
         authenticate,
+        requirePlayer,
         validate(schemas.listPaymentHistorySchema, 'query'),
         controller.listMine,
     );

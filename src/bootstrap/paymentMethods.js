@@ -4,6 +4,7 @@ const createPaymentMethodController = require('../modules/payment-methods/presen
 const createPaymentMethodRouter = require('../modules/payment-methods/presentation/routes/paymentMethodRoutes');
 const paymentMethodSchemas = require('../modules/payment-methods/presentation/validators/paymentMethodSchemas');
 const createRequireAdmin = require('../shared/middleware/requireAdmin');
+const createRequirePlayer = require('../shared/middleware/requirePlayer');
 
 function createPaymentMethodModule({ prisma, authenticate }) {
     const paymentMethodRepository = new PrismaPaymentMethodRepository(prisma);
@@ -16,6 +17,7 @@ function createPaymentMethodModule({ prisma, authenticate }) {
         schemas: paymentMethodSchemas,
         authenticate,
         requireAdmin: createRequireAdmin(prisma),
+        requirePlayer: createRequirePlayer(prisma),
     });
 }
 
