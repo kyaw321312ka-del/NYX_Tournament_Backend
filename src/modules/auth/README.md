@@ -22,7 +22,8 @@ Use `null` to clear either field. The profile response includes `clubName` and
 `address`.
 
 Registration uses `multipart/form-data` with text fields `name`, `email`,
-`password`, `gender`, one or more `categoryIds`, and optional `phno`, plus required file fields `frontIdImg` and
+`password`, `gender`, `birthday`, one or more `categoryIds`, and optional
+`phno`, `address`, and `clubName`, plus required file fields `frontIdImg` and
 `backIdImg`. An optional `profileImage` file may also be included. Identity
 documents accept JPEG, PNG, or WebP up to 10 MB each; the profile image accepts
 the same formats up to 5 MB. Files are stored while the account is pending
@@ -30,7 +31,10 @@ email verification, then their references are copied to the user account when
 the OTP is verified. Identity documents remain private; the profile image is
 publicly served.
 
-The required `gender` field accepts `male` or `female` (case-insensitive).
+The required `gender` field accepts `male` or `female` (case-insensitive);
+`birthday` is a required date in `YYYY-MM-DD` format. `address` is limited to
+500 characters and `clubName` to 150 characters. Both are saved to the player
+profile after email verification. Gender determines eligibility for gendered tournament categories.
 Gender determines eligibility for gendered tournament categories.
 
 Verification accepts `{ "email", "otp" }`. Login accepts `{ "email",

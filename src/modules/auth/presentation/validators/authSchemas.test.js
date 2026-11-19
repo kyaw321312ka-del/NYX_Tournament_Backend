@@ -7,6 +7,8 @@ test('registration normalizes email and trims name and phone', () => {
     name: '  Tournament Player ',
     gender: 'Female',
     phno: '  +1 555 123 4567 ',
+    address: '  12 Main Street ',
+    clubName: '  Yangon Badminton Club ',
     birthday: '1995-08-12',
     email: ' PLAYER@example.com ',
     password: 'correct horse battery staple',
@@ -19,10 +21,35 @@ test('registration normalizes email and trims name and phone', () => {
     gender: 'female',
     birthday: '1995-08-12',
     phno: '+1 555 123 4567',
+    address: '12 Main Street',
+    clubName: 'Yangon Badminton Club',
     email: 'player@example.com',
     password: 'correct horse battery staple',
     categoryIds: [1, 3],
   });
+});
+
+test('registration allows omitted or empty address and club name and enforces their limits', () => {
+  const base = {
+    name: 'Player',
+    gender: 'female',
+    birthday: '1990-01-01',
+    email: 'player@example.com',
+    password: 'correct horse battery staple',
+    categoryIds: ['1'],
+  };
+  const omitted = schemas.register.safeParse(base);
+  assert.equal(omitted.success, true);
+  assert.equal(omitted.data.address, null);
+  assert.equal(omitted.data.clubName, null);
+
+  const empty = schemas.register.safeParse({ ...base, address: ' ', clubName: '' });
+  assert.equal(empty.success, true);
+  assert.equal(empty.data.address, null);
+  assert.equal(empty.data.clubName, null);
+
+  assert.equal(schemas.register.safeParse({ ...base, address: 'a'.repeat(501) }).success, false);
+  assert.equal(schemas.register.safeParse({ ...base, clubName: 'a'.repeat(151) }).success, false);
 });
 
 test('registration requires binary gender values', () => {

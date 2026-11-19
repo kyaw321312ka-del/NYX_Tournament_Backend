@@ -69,6 +69,8 @@ const input = {
   gender: 'female',
   birthday: '1995-08-12',
   phno: '+959123456789',
+  address: 'Yangon',
+  clubName: 'Yangon Badminton Club',
   email: ' PLAYER@example.com ',
   password: 'a-strong-password',
   categoryIds: [1, 2],
@@ -99,6 +101,8 @@ test('stores uploaded image references with pending registration before OTP veri
   assert.equal(pending.name, 'Test Player');
   assert.equal(pending.gender, 'female');
   assert.equal(pending.birthday.toISOString(), '1995-08-12T00:00:00.000Z');
+  assert.equal(pending.address, 'Yangon');
+  assert.equal(pending.clubName, 'Yangon Badminton Club');
   assert.equal(pending.email, 'player@example.com');
   assert.equal(pending.profileImageUrl, '/uploads/player-profiles/new.png');
   assert.equal(pending.frontIdImg, 'front.jpg');

@@ -143,6 +143,8 @@ model PendingRegistration {
   gender          String    @db.VarChar(30)
   birthday        DateTime? @db.Date
   phno            String?   @db.VarChar(30)
+  address         String?   @db.VarChar(500)
+  clubName        String?   @map("club_name") @db.VarChar(150)
   email           String    @unique @db.VarChar(254)
   passwordHash    String    @db.VarChar(255)
   profileImageUrl String?   @map("profile_image_url") @db.VarChar(2048)

@@ -61,6 +61,8 @@ class RegisterUser {
         gender: dto.gender,
         birthday: new Date(`${dto.birthday}T00:00:00.000Z`),
         phno: dto.phno,
+        address: dto.address,
+        clubName: dto.clubName,
         email: dto.email,
         passwordHash,
         profileImageUrl: storedFiles.profileImageUrl ?? null,

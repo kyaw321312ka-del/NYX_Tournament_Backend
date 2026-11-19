@@ -10,6 +10,8 @@ test('email verification transfers pending image references to the new user', as
     gender: 'female',
     birthday: new Date('1995-08-12T00:00:00.000Z'),
     phno: '+959123456789',
+    address: 'Yangon',
+    clubName: 'Yangon Badminton Club',
     email: 'player@example.com',
     passwordHash: 'password-hash',
     profileImageUrl: '/uploads/player-profiles/profile.png',
@@ -67,6 +69,8 @@ test('email verification transfers pending image references to the new user', as
         gender: pending.gender,
         birthday: pending.birthday,
         profileImageUrl: pending.profileImageUrl,
+        address: pending.address,
+        clubName: pending.clubName,
       },
     },
     identityDocuments: {

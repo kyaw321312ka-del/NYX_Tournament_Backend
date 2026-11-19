@@ -94,6 +94,8 @@ class PrismaAuthRepository extends AuthRepository {
               gender: pending.gender,
               birthday: pending.birthday,
               profileImageUrl: pending.profileImageUrl,
+              address: pending.address,
+              clubName: pending.clubName,
             },
           },
           identityDocuments: {

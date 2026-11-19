@@ -35,6 +35,12 @@ const register = z.object({
   phno: z.string().trim().max(30, 'Phone number must be no longer than 30 characters.')
     .optional()
     .transform((phone) => phone || null),
+  address: z.string().trim().max(500, 'Address must be no longer than 500 characters.')
+    .optional()
+    .transform((address) => address || null),
+  clubName: z.string().trim().max(150, 'Club name must be no longer than 150 characters.')
+    .optional()
+    .transform((clubName) => clubName || null),
   email: emailSchema,
   password: passwordSchema,
   categoryIds: categoryIdsSchema,
