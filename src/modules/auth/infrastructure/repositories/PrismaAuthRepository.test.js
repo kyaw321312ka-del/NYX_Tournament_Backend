@@ -25,7 +25,13 @@ test('email verification transfers pending image references to the new user', as
       user: {
         create: async ({ data }) => {
           calls.push(['create', data]);
-          return { ...data, id: 8, role: { name: 'user' } };
+          return {
+            ...data,
+            id: 8,
+            profile: data.profile.create,
+            identityDocuments: data.identityDocuments.create,
+            role: { name: 'user' },
+          };
         },
       },
       pendingRegistration: {
@@ -40,9 +46,9 @@ test('email verification transfers pending image references to the new user', as
 
   const user = await repository.completePendingRegistration(pending);
 
-  assert.equal(user.profileImageUrl, pending.profileImageUrl);
-  assert.equal(user.frontIdImg, pending.frontIdImg);
-  assert.equal(user.backIdImg, pending.backIdImg);
+  assert.equal(user.profile.profileImageUrl, pending.profileImageUrl);
+  assert.equal(user.identityDocuments.frontImageUrl, pending.frontIdImg);
+  assert.equal(user.identityDocuments.backImageUrl, pending.backIdImg);
   assert.deepEqual(calls[0][1].categories, {
     create: [
       { category: { connect: { id: 2 } } },
@@ -52,15 +58,23 @@ test('email verification transfers pending image references to the new user', as
   assert.deepEqual(calls[0][1], {
     roleId: 2,
     name: pending.name,
-    gender: pending.gender,
-    birthday: pending.birthday,
     phno: pending.phno,
     email: pending.email,
     passwordHash: pending.passwordHash,
     emailVerifiedAt: calls[0][1].emailVerifiedAt,
-    profileImageUrl: pending.profileImageUrl,
-    frontIdImg: pending.frontIdImg,
-    backIdImg: pending.backIdImg,
+    profile: {
+      create: {
+        gender: pending.gender,
+        birthday: pending.birthday,
+        profileImageUrl: pending.profileImageUrl,
+      },
+    },
+    identityDocuments: {
+      create: {
+        frontImageUrl: pending.frontIdImg,
+        backImageUrl: pending.backIdImg,
+      },
+    },
     categories: {
       create: [
         { category: { connect: { id: 2 } } },

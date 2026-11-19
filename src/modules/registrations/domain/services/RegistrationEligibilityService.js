@@ -43,11 +43,12 @@ class RegistrationEligibilityService {
             throw new RegistrationError(409, 'Age eligibility reference date is invalid.');
         }
         for (const player of players) {
-            if (!player?.birthday) {
+            const birthdayValue = player?.profile?.birthday ?? player?.birthday;
+            if (!birthdayValue) {
                 throw new RegistrationError(400, 'A birthday is required for age-restricted categories.');
             }
 
-            const birthday = new Date(player.birthday);
+            const birthday = new Date(birthdayValue);
             if (Number.isNaN(birthday.getTime())) {
                 throw new RegistrationError(400, 'A valid birthday is required for age-restricted categories.');
             }
@@ -84,8 +85,9 @@ class RegistrationEligibilityService {
             if (!player?.emailVerifiedAt) {
                 throw new RegistrationError(403, 'All players must have verified email addresses.');
             }
-            const gender = typeof player.gender === 'string'
-                ? player.gender.trim().toLowerCase()
+            const playerGender = player.profile?.gender ?? player.gender;
+            const gender = typeof playerGender === 'string'
+                ? playerGender.trim().toLowerCase()
                 : null;
             if (!['male', 'female'].includes(gender)) {
                 throw new RegistrationError(400, 'Player gender is not eligible for this category.');

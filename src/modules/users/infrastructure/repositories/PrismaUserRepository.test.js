@@ -10,9 +10,11 @@ test('updates profile categories and returns replaced image references', async (
                 findUnique: async () => ({
                     id: 7,
                     email: 'player@example.com',
-                    profileImageUrl: '/old-profile.png',
-                    frontIdImg: 'old-front.jpg',
-                    backIdImg: 'old-back.jpg',
+                    profile: { profileImageUrl: '/old-profile.png' },
+                    identityDocuments: {
+                        frontImageUrl: 'old-front.jpg',
+                        backImageUrl: 'old-back.jpg',
+                    },
                 }),
                 update: async (args) => {
                     updateArgs = args;
@@ -38,6 +40,24 @@ test('updates profile categories and returns replaced image references', async (
             { category: { connect: { id: 1 } } },
             { category: { connect: { id: 2 } } },
         ],
+    });
+    assert.deepEqual(updateArgs.data.profile, {
+        upsert: {
+            create: { profileImageUrl: '/new-profile.png' },
+            update: { profileImageUrl: '/new-profile.png' },
+        },
+    });
+    assert.deepEqual(updateArgs.data.identityDocuments, {
+        upsert: {
+            create: {
+                frontImageUrl: 'new-front.jpg',
+                verificationStatus: 'pending',
+            },
+            update: {
+                frontImageUrl: 'new-front.jpg',
+                verificationStatus: 'pending',
+            },
+        },
     });
     assert.deepEqual(result.previousFiles, {
         profileImageUrl: '/old-profile.png',
@@ -73,7 +93,10 @@ test('updates the profile image and returns the previous URL for cleanup', async
             user: {
                 findUnique: async (args) => {
                     calls.push(['findUnique', args]);
-                    return { id: 7, profileImageUrl: '/uploads/player-profiles/old.jpg' };
+                return {
+                    id: 7,
+                    profile: { profileImageUrl: '/uploads/player-profiles/old.jpg' },
+                };
                 },
                 update: async (args) => {
                     calls.push(['update', args]);
@@ -81,7 +104,9 @@ test('updates the profile image and returns the previous URL for cleanup', async
                         id: 7,
                         name: 'Player',
                         email: 'player@example.com',
-                        profileImageUrl: args.data.profileImageUrl,
+                        profile: {
+                            profileImageUrl: args.data.profile.upsert.update.profileImageUrl,
+                        },
                     };
                 },
             },
@@ -94,7 +119,9 @@ test('updates the profile image and returns the previous URL for cleanup', async
     assert.equal(result.user.profileImageUrl, '/uploads/player-profiles/new.png');
     assert.equal(result.previousProfileImageUrl, '/uploads/player-profiles/old.jpg');
     assert.equal(calls[0][1].where.id, 7);
-    assert.equal(calls[1][1].data.profileImageUrl, '/uploads/player-profiles/new.png');
+    assert.deepEqual(calls[1][1].data.profile.upsert.update, {
+        profileImageUrl: '/uploads/player-profiles/new.png',
+    });
 });
 
 test('returns not found when the authenticated user does not exist', async () => {
@@ -121,8 +148,10 @@ test('updates only the submitted identity document columns and returns replaced 
             user: {
                 findUnique: async () => ({
                     id: 7,
-                    frontIdImg: 'old-front.jpg',
-                    backIdImg: 'old-back.jpg',
+                    identityDocuments: {
+                        frontImageUrl: 'old-front.jpg',
+                        backImageUrl: 'old-back.jpg',
+                    },
                 }),
                 update: async (args) => {
                     updateArgs = args;
@@ -130,8 +159,10 @@ test('updates only the submitted identity document columns and returns replaced 
                         id: 7,
                         name: 'Player',
                         email: 'player@example.com',
-                        frontIdImg: args.data.frontIdImg ?? 'old-front.jpg',
-                        backIdImg: 'old-back.jpg',
+                        identityDocuments: {
+                            frontImageUrl: args.data.identityDocuments.upsert.update.frontImageUrl,
+                            backImageUrl: 'old-back.jpg',
+                        },
                     };
                 },
             },
@@ -141,7 +172,10 @@ test('updates only the submitted identity document columns and returns replaced 
 
     const result = await repository.updateIdentityDocuments(7, { frontIdImg: 'new-front.jpg' });
 
-    assert.deepEqual(updateArgs.data, { frontIdImg: 'new-front.jpg' });
+    assert.deepEqual(updateArgs.data.identityDocuments.upsert.update, {
+        frontImageUrl: 'new-front.jpg',
+        verificationStatus: 'pending',
+    });
     assert.equal(result.previousDocuments.frontIdImg, 'old-front.jpg');
     assert.equal(result.previousDocuments.backIdImg, null);
 });

@@ -79,21 +79,17 @@ model User {
   id              Int       @id @default(autoincrement())
   roleId          Int
   name            String    @db.VarChar(150)
-  clubName        String?   @map("club_name") @db.VarChar(150)
-  gender          String    @db.VarChar(30)
-  birthday        DateTime? @db.Date
   phno            String?   @db.VarChar(30)
   email           String    @unique @db.VarChar(254)
   passwordHash    String    @map("password") @db.VarChar(255)
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamp(0)
-  profileImageUrl String?   @map("profile_image_url") @db.VarChar(2048)
-  frontIdImg      String?   @db.VarChar(2048)
-  backIdImg       String?   @db.VarChar(2048)
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relationships
   role                       Role                           @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  profile                    UserProfile?
+  identityDocuments          UserIdentityDocuments?
   categories                 UserCategory[]
   createdTournaments         Tournament[]
   registrationsCreated       TournamentRegistration[]       @relation("RegistrationCreator")
@@ -105,6 +101,36 @@ model User {
 
   @@index([roleId])
   @@map("users")
+}
+
+model UserProfile {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique @map("user_id")
+  profileImageUrl String?   @map("profile_image_url") @db.VarChar(2048)
+  gender          String?   @db.VarChar(30)
+  address         String?   @db.VarChar(500)
+  birthday        DateTime? @db.Date
+  clubName        String?   @map("club_name") @db.VarChar(150)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserIdentityDocuments {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @unique @map("user_id")
+  frontImageUrl      String?  @map("front_image_url") @db.VarChar(2048)
+  backImageUrl       String?  @map("back_image_url") @db.VarChar(2048)
+  verificationStatus String   @default("pending") @map("verification_status") @db.VarChar(30)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_identity_documents")
 }
 
 // ==========================================

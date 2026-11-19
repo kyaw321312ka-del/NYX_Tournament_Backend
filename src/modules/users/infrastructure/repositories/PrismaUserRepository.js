@@ -26,16 +26,56 @@ class PrismaUserRepository {
                 select: {
                     id: true,
                     email: true,
-                    profileImageUrl: true,
-                    frontIdImg: true,
-                    backIdImg: true,
+                    profile: { select: { profileImageUrl: true } },
+                    identityDocuments: {
+                        select: { frontImageUrl: true, backImageUrl: true },
+                    },
                 },
             });
             if (!existing) {
                 throw new HttpError(404, 'User not found.');
             }
 
-            const updateData = { ...data };
+            const updateData = {};
+            for (const field of ['name', 'phno', 'passwordHash']) {
+                if (data[field] !== undefined) updateData[field] = data[field];
+            }
+
+            const profileData = {};
+            for (const field of ['clubName', 'address', 'gender', 'birthday', 'profileImageUrl']) {
+                if (data[field] !== undefined) profileData[field] = data[field];
+            }
+            if (Object.keys(profileData).length) {
+                updateData.profile = {
+                    upsert: {
+                        create: profileData,
+                        update: profileData,
+                    },
+                };
+            }
+
+            const identityDocumentData = {};
+            if (data.frontIdImg !== undefined) {
+                identityDocumentData.frontImageUrl = data.frontIdImg;
+            }
+            if (data.backIdImg !== undefined) {
+                identityDocumentData.backImageUrl = data.backIdImg;
+            }
+            if (Object.keys(identityDocumentData).length) {
+                updateData.identityDocuments = {
+                    upsert: {
+                        create: {
+                            ...identityDocumentData,
+                            verificationStatus: 'pending',
+                        },
+                        update: {
+                            ...identityDocumentData,
+                            verificationStatus: 'pending',
+                        },
+                    },
+                };
+            }
+
             if (categoryIds) {
                 const categories = await transaction.category.findMany({
                     where: { id: { in: categoryIds } },
@@ -89,15 +129,16 @@ class PrismaUserRepository {
                 data: updateData,
                 include: {
                     role: true,
+                    profile: true,
                     categories: { include: { category: true } },
                 },
             });
             return {
                 user,
                 previousFiles: {
-                    profileImageUrl: data.profileImageUrl ? existing.profileImageUrl : null,
-                    frontIdImg: data.frontIdImg ? existing.frontIdImg : null,
-                    backIdImg: data.backIdImg ? existing.backIdImg : null,
+                    profileImageUrl: data.profileImageUrl ? existing.profile?.profileImageUrl : null,
+                    frontIdImg: data.frontIdImg ? existing.identityDocuments?.frontImageUrl : null,
+                    backIdImg: data.backIdImg ? existing.identityDocuments?.backImageUrl : null,
                 },
             };
         });
@@ -144,7 +185,7 @@ class PrismaUserRepository {
                     email: pending.newEmail,
                     emailVerifiedAt: new Date(),
                 },
-                include: { role: true },
+                include: { role: true, profile: true },
             });
         });
     }
@@ -153,7 +194,10 @@ class PrismaUserRepository {
         return this.prisma.$transaction(async (transaction) => {
             const existing = await transaction.user.findUnique({
                 where: { id: Number(userId) },
-                select: { id: true, profileImageUrl: true },
+                select: {
+                    id: true,
+                    profile: { select: { profileImageUrl: true } },
+                },
             });
 
             if (!existing) {
@@ -162,18 +206,28 @@ class PrismaUserRepository {
 
             const user = await transaction.user.update({
                 where: { id: existing.id },
-                data: { profileImageUrl },
+                data: {
+                    profile: {
+                        upsert: {
+                            create: { profileImageUrl },
+                            update: { profileImageUrl },
+                        },
+                    },
+                },
                 select: {
                     id: true,
                     name: true,
                     email: true,
-                    profileImageUrl: true,
+                    profile: { select: { profileImageUrl: true } },
                 },
             });
 
             return {
-                user,
-                previousProfileImageUrl: existing.profileImageUrl,
+                user: {
+                    ...user,
+                    profileImageUrl: user.profile?.profileImageUrl ?? null,
+                },
+                previousProfileImageUrl: existing.profile?.profileImageUrl ?? null,
             };
         });
     }
@@ -184,8 +238,9 @@ class PrismaUserRepository {
                 where: { id: Number(userId) },
                 select: {
                     id: true,
-                    frontIdImg: true,
-                    backIdImg: true,
+                    identityDocuments: {
+                        select: { frontImageUrl: true, backImageUrl: true },
+                    },
                 },
             });
 
@@ -195,21 +250,49 @@ class PrismaUserRepository {
 
             const user = await transaction.user.update({
                 where: { id: existing.id },
-                data: documents,
+                data: {
+                    identityDocuments: {
+                        upsert: {
+                            create: {
+                                frontImageUrl: documents.frontIdImg,
+                                backImageUrl: documents.backIdImg,
+                                verificationStatus: 'pending',
+                            },
+                            update: {
+                                ...(documents.frontIdImg !== undefined
+                                    ? { frontImageUrl: documents.frontIdImg }
+                                    : {}),
+                                ...(documents.backIdImg !== undefined
+                                    ? { backImageUrl: documents.backIdImg }
+                                    : {}),
+                                verificationStatus: 'pending',
+                            },
+                        },
+                    },
+                },
                 select: {
                     id: true,
                     name: true,
                     email: true,
-                    frontIdImg: true,
-                    backIdImg: true,
+                    identityDocuments: {
+                        select: { frontImageUrl: true, backImageUrl: true },
+                    },
                 },
             });
 
             return {
-                user,
+                user: {
+                    ...user,
+                    frontIdImg: user.identityDocuments?.frontImageUrl ?? null,
+                    backIdImg: user.identityDocuments?.backImageUrl ?? null,
+                },
                 previousDocuments: {
-                    frontIdImg: documents.frontIdImg ? existing.frontIdImg : null,
-                    backIdImg: documents.backIdImg ? existing.backIdImg : null,
+                    frontIdImg: documents.frontIdImg
+                        ? existing.identityDocuments?.frontImageUrl ?? null
+                        : null,
+                    backIdImg: documents.backIdImg
+                        ? existing.identityDocuments?.backImageUrl ?? null
+                        : null,
                 },
             };
         });

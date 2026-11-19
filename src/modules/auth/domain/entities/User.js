@@ -8,17 +8,19 @@ class User {
   }
 
   toPublicProfile() {
+    const profileDetails = this.profile ?? this;
     const profile = {
       id: this.id,
       name: this.name,
-      clubName: this.clubName ?? null,
-      gender: this.gender,
-      birthday: this.birthday instanceof Date
-        ? this.birthday.toISOString().slice(0, 10)
-        : this.birthday ?? null,
+      clubName: profileDetails.clubName ?? null,
+      address: profileDetails.address ?? null,
+      gender: profileDetails.gender ?? null,
+      birthday: profileDetails.birthday instanceof Date
+        ? profileDetails.birthday.toISOString().slice(0, 10)
+        : profileDetails.birthday ?? null,
       email: this.email,
       phno: this.phno,
-      profileImageUrl: this.profileImageUrl,
+      profileImageUrl: profileDetails.profileImageUrl ?? null,
       role: this.role.name,
       emailVerifiedAt: this.emailVerifiedAt,
       createdAt: this.createdAt,

@@ -28,6 +28,29 @@ test('public profile includes the club name', () => {
   assert.equal(user.toPublicProfile().clubName, 'Yangon Badminton Club');
 });
 
+test('public profile reads player details from the profile relation', () => {
+  const user = User.fromRecord({
+    id: 1,
+    name: 'Player',
+    email: 'player@example.com',
+    phno: null,
+    profile: {
+      gender: 'female',
+      birthday: new Date('1995-08-12T00:00:00.000Z'),
+      clubName: 'Yangon Badminton Club',
+      address: 'Yangon',
+      profileImageUrl: '/uploads/player-profiles/player.png',
+    },
+    role: { name: 'user' },
+  });
+
+  assert.equal(user.toPublicProfile().gender, 'female');
+  assert.equal(user.toPublicProfile().birthday, '1995-08-12');
+  assert.equal(user.toPublicProfile().clubName, 'Yangon Badminton Club');
+  assert.equal(user.toPublicProfile().address, 'Yangon');
+  assert.equal(user.toPublicProfile().profileImageUrl, '/uploads/player-profiles/player.png');
+});
+
 test('public profile leaves legacy birthdays empty', () => {
   const user = User.fromRecord({
     id: 1,

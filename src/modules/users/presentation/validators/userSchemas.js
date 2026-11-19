@@ -22,6 +22,8 @@ const updateProfileSchema = z.object({
     name: z.string().trim().min(1).max(150).optional(),
     clubName: z.string().trim().max(150).nullable().optional()
         .transform((clubName) => (clubName === '' ? null : clubName)),
+    address: z.string().trim().max(500).nullable().optional()
+        .transform((address) => (address === '' ? null : address)),
     gender: z.preprocess(
         (value) => (typeof value === 'string' ? value.trim().toLowerCase() : value),
         z.enum(['male', 'female']),

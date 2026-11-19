@@ -16,9 +16,10 @@ All routes are under `/api/auth`:
 | `POST` | `/login` | Sign in with a verified account and return a bearer token |
 | `GET` | `/me` | Return the current account; requires `Authorization: Bearer <token>` |
 
-Update the current player's club with `PATCH /api/users/me`, for example
-with JSON body `{"clubName":"Yangon Badminton Club"}`. Use `null` to clear it.
-The profile response includes `clubName`.
+Update the current player's profile with `PATCH /api/users/me`, for example
+with JSON body `{"clubName":"Yangon Badminton Club","address":"Yangon"}`.
+Use `null` to clear either field. The profile response includes `clubName` and
+`address`.
 
 Registration uses `multipart/form-data` with text fields `name`, `email`,
 `password`, `gender`, one or more `categoryIds`, and optional `phno`, plus required file fields `frontIdImg` and
@@ -49,8 +50,14 @@ attached to the account after email verification.
 
 Run the auth unit tests with `npm test`.
 
-Apply the Prisma migration before using the routes:
+Player details are stored in `user_profiles`, while identity-document references
+and verification status are stored in `user_identity_documents`. The migration
+copies existing values from `users` before removing the old columns. Deploy it
+before restarting the application:
 
 ```sh
 npx prisma migrate deploy
 ```
+
+`npx prisma generate` only regenerates the Prisma Client; it does not change the
+database schema.

@@ -31,6 +31,13 @@ test('accepts a club name, trims it, and allows clearing it', () => {
     assert.equal(updateProfileSchema.safeParse({ clubName: 'x'.repeat(151) }).success, false);
 });
 
+test('accepts, trims, and clears a profile address', () => {
+    assert.equal(updateProfileSchema.parse({ address: '  Yangon  ' }).address, 'Yangon');
+    assert.equal(updateProfileSchema.parse({ address: '' }).address, null);
+    assert.equal(updateProfileSchema.parse({ address: null }).address, null);
+    assert.equal(updateProfileSchema.safeParse({ address: 'x'.repeat(501) }).success, false);
+});
+
 test('accepts a past birthday on profile updates and rejects future birthdays', () => {
     assert.equal(updateProfileSchema.safeParse({ birthday: '1995-08-12' }).success, true);
     assert.equal(updateProfileSchema.safeParse({ birthday: '2995-08-12' }).success, false);

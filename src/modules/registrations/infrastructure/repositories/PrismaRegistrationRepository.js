@@ -22,10 +22,22 @@ const partnerInvitationInclude = {
         },
     },
     inviter: {
-        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true, birthday: true },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerifiedAt: true,
+            profile: { select: { gender: true, birthday: true } },
+        },
     },
     invitedUser: {
-        select: { id: true, name: true, email: true, gender: true, emailVerifiedAt: true, birthday: true },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerifiedAt: true,
+            profile: { select: { gender: true, birthday: true } },
+        },
     },
 };
 
@@ -94,7 +106,11 @@ class PrismaRegistrationRepository extends RegistrationRepository {
 
             const player = await transaction.user.findUnique({
                 where: { id: ownerId },
-                select: { id: true, gender: true, emailVerifiedAt: true, birthday: true },
+                select: {
+                    id: true,
+                    emailVerifiedAt: true,
+                    profile: { select: { gender: true, birthday: true } },
+                },
             });
             eligibilityService.validatePlayers(category, [player]);
 
@@ -176,11 +192,20 @@ class PrismaRegistrationRepository extends RegistrationRepository {
                 }),
                 transaction.user.findUnique({
                     where: { id: inviterId },
-                    select: { id: true, emailVerifiedAt: true, birthday: true, gender: true },
+                    select: {
+                        id: true,
+                        emailVerifiedAt: true,
+                        profile: { select: { gender: true, birthday: true } },
+                    },
                 }),
                 transaction.user.findUnique({
                     where: { email },
-                    select: { id: true, email: true, emailVerifiedAt: true, birthday: true, gender: true },
+                    select: {
+                        id: true,
+                        email: true,
+                        emailVerifiedAt: true,
+                        profile: { select: { gender: true, birthday: true } },
+                    },
                 }),
             ]);
 

@@ -11,7 +11,7 @@ class PrismaAuthRepository extends AuthRepository {
   async findUserByEmail(email) {
     return this.prisma.user.findUnique({
       where: { email },
-      include: { role: true },
+      include: { role: true, profile: true },
     });
   }
 
@@ -25,7 +25,7 @@ class PrismaAuthRepository extends AuthRepository {
   async findUserById(id) {
     return this.prisma.user.findUnique({
       where: { id },
-      include: { role: true },
+      include: { role: true, profile: true },
     });
   }
 
@@ -85,22 +85,30 @@ class PrismaAuthRepository extends AuthRepository {
         data: {
           roleId: role.id,
           name: pending.name,
-          gender: pending.gender,
-          birthday: pending.birthday,
           phno: pending.phno,
           email: pending.email,
           passwordHash: pending.passwordHash,
           emailVerifiedAt: new Date(),
-          profileImageUrl: pending.profileImageUrl,
-          frontIdImg: pending.frontIdImg,
-          backIdImg: pending.backIdImg,
+          profile: {
+            create: {
+              gender: pending.gender,
+              birthday: pending.birthday,
+              profileImageUrl: pending.profileImageUrl,
+            },
+          },
+          identityDocuments: {
+            create: {
+              frontImageUrl: pending.frontIdImg,
+              backImageUrl: pending.backIdImg,
+            },
+          },
           categories: {
             create: (pending.categoryIds ?? []).map((categoryId) => ({
               category: { connect: { id: categoryId } },
             })),
           },
         },
-        include: { role: true },
+        include: { role: true, profile: true },
       });
       const deleted = await transaction.pendingRegistration.deleteMany({
         where: { id: pending.id, attempts: { lt: 5 } },
