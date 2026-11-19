@@ -85,12 +85,22 @@ test('updates profile fields without requiring a password confirmation', async (
     assert.deepEqual(calls, [
         ['updateProfile', 7, {
             name: 'Updated Player',
+            clubName: undefined,
             gender: undefined,
             birthday: undefined,
             phno: null,
             passwordHash: undefined,
         }, undefined, undefined],
     ]);
+});
+
+test('updates the club name in the user profile', async () => {
+    const { useCase, calls } = createUseCase();
+
+    const result = await useCase.execute(7, { clubName: 'Yangon Badminton Club' });
+
+    assert.equal(result.user.clubName, 'Yangon Badminton Club');
+    assert.equal(calls[0][2].clubName, 'Yangon Badminton Club');
 });
 
 test('updates the birthday as a date-only value', async () => {

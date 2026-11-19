@@ -37,6 +37,7 @@ class UpdateUserProfile {
 
         const update = {
             name: input.name,
+            clubName: input.clubName,
             gender: input.gender,
             birthday: input.birthday ? new Date(`${input.birthday}T00:00:00.000Z`) : undefined,
             phno: input.phno,

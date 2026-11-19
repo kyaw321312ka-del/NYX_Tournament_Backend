@@ -15,6 +15,19 @@ test('public profile serializes birthday as a date-only value', () => {
   assert.equal(user.toPublicProfile().birthday, '1995-08-12');
 });
 
+test('public profile includes the club name', () => {
+  const user = User.fromRecord({
+    id: 1,
+    name: 'Player',
+    clubName: 'Yangon Badminton Club',
+    gender: 'female',
+    email: 'player@example.com',
+    role: { name: 'user' },
+  });
+
+  assert.equal(user.toPublicProfile().clubName, 'Yangon Badminton Club');
+});
+
 test('public profile leaves legacy birthdays empty', () => {
   const user = User.fromRecord({
     id: 1,

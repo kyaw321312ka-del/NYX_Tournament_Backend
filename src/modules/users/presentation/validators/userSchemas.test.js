@@ -21,6 +21,16 @@ test('normalizes email and empty phone values', () => {
     assert.equal(result.phno, null);
 });
 
+test('accepts a club name, trims it, and allows clearing it', () => {
+    assert.equal(
+        updateProfileSchema.parse({ clubName: '  Yangon Badminton Club  ' }).clubName,
+        'Yangon Badminton Club',
+    );
+    assert.equal(updateProfileSchema.parse({ clubName: '' }).clubName, null);
+    assert.equal(updateProfileSchema.parse({ clubName: null }).clubName, null);
+    assert.equal(updateProfileSchema.safeParse({ clubName: 'x'.repeat(151) }).success, false);
+});
+
 test('accepts a past birthday on profile updates and rejects future birthdays', () => {
     assert.equal(updateProfileSchema.safeParse({ birthday: '1995-08-12' }).success, true);
     assert.equal(updateProfileSchema.safeParse({ birthday: '2995-08-12' }).success, false);

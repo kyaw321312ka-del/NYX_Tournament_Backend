@@ -16,6 +16,10 @@ All routes are under `/api/auth`:
 | `POST` | `/login` | Sign in with a verified account and return a bearer token |
 | `GET` | `/me` | Return the current account; requires `Authorization: Bearer <token>` |
 
+Update the current player's club with `PATCH /api/users/me`, for example
+with JSON body `{"clubName":"Yangon Badminton Club"}`. Use `null` to clear it.
+The profile response includes `clubName`.
+
 Registration uses `multipart/form-data` with text fields `name`, `email`,
 `password`, `gender`, one or more `categoryIds`, and optional `phno`, plus required file fields `frontIdImg` and
 `backIdImg`. An optional `profileImage` file may also be included. Identity

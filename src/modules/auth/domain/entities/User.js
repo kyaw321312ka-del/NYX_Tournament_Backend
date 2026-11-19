@@ -11,6 +11,7 @@ class User {
     const profile = {
       id: this.id,
       name: this.name,
+      clubName: this.clubName ?? null,
       gender: this.gender,
       birthday: this.birthday instanceof Date
         ? this.birthday.toISOString().slice(0, 10)
