@@ -13,6 +13,7 @@
     "seed:registration-tournament": "node prisma/seedings/seed-registration-tournament.js",
     "seed:payment-methods": "node prisma/seedings/seed-payment-methods.js",
     "seed:test-users": "node prisma/seedings/seed-test-users.js",
+    "seed:full-tournament": "node prisma/seedings/seed-full-tournament.js",
     "postinstall": "prisma skills sync || exit 0"
   },
   "keywords": [],

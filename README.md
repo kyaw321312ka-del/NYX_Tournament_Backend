@@ -33,6 +33,30 @@ and `prisma migrate deploy` before restarting Passenger via `tmp/restart.txt`.
 Production migrations must be committed to the repository;
 `prisma migrate dev` is never run by CI/CD.
 
+## Full tournament test data
+
+For local development only, first apply the committed migrations with
+`npx prisma migrate deploy`, then run `npm run seed:full-tournament`. This
+creates 35 synthetic player accounts (`nyx.seed.player.NN@example.test`), a
+published Men's Singles tournament, paid and confirmed registrations, test
+payment proof, and a published 64-position single-elimination draw. The draw
+has 29 first-round byes; match results are left unplayed. The seed can be rerun
+without creating duplicate players, registrations, payments, or draws.
+
+Set these values in a local, untracked `.env` before running the seeder:
+
+```env
+NODE_ENV=development
+SEED_TEST_DATA=true
+ADMIN_EMAIL=existing-admin@example.com
+TEST_USERS_PASSWORD=a-local-test-password-at-least-12-characters
+```
+
+The seeder refuses to run when `NODE_ENV=production` and requires the explicit
+`SEED_TEST_DATA=true` opt-in. Keep this pointed at a development database, and
+never commit the test password or seed these accounts on a public production
+server. All generated players share `TEST_USERS_PASSWORD`.
+
 ## Frontend CORS
 
 The API allows frontend requests from `http://localhost:5173`,
