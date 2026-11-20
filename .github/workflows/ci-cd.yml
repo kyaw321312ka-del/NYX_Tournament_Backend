@@ -271,19 +271,35 @@ jobs:
         run: |
           set -euo pipefail
 
-          url="https://api.nyxtournament.com/api/admin/users?page=1&pageSize=1"
+          base_url="https://api.nyxtournament.com"
+          routes=(
+            "/api/admin/users?page=1&pageSize=1"
+            "/api/admin/users/1"
+            "/api/admin/users/1/identity-documents/front"
+            "/api/admin/users/1/identity-documents/back"
+          )
+
           for attempt in {1..12}; do
-            status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-              --max-time 10 "$url" || true)"
-            if [[ "$status" == "401" || "$status" == "403" ]]; then
-              echo "Admin users route is live and protected (HTTP $status)."
+            all_routes_ready=true
+
+            for route in "${routes[@]}"; do
+              status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+                --max-time 10 "$base_url$route" || true)"
+
+              if [[ "$status" != "401" && "$status" != "403" ]]; then
+                echo "Waiting for $route (attempt $attempt/12; HTTP ${status:-000})."
+                all_routes_ready=false
+              fi
+            done
+
+            if [[ "$all_routes_ready" == "true" ]]; then
+              echo "Admin player list, details, and identity-document routes are live and protected."
               exit 0
             fi
 
-            echo "Waiting for the admin users route (attempt $attempt/12; HTTP ${status:-000})."
             sleep 5
           done
 
-          echo "The deployed admin users route did not become available." >&2
+          echo "One or more deployed admin player routes did not become available." >&2
           echo "Check the cPanel application root, startup file, and Passenger restart configuration." >&2
           exit 1
