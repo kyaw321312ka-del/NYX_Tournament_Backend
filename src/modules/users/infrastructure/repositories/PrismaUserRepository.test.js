@@ -186,9 +186,26 @@ test('returns admin player details without exposing private identity-document fi
     assert.equal(result.playerId, '#NYX-8843');
     assert.equal(result.birthday, '1998-04-15');
     assert.equal(result.identityDocuments.verificationStatus, 'approved');
+    assert.equal(result.identityDocuments.frontIdImg, '/api/admin/users/8843/identity-documents/front');
+    assert.equal(result.identityDocuments.backIdImg, '/api/admin/users/8843/identity-documents/back');
     assert.equal(result.points, 3650);
     assert.equal(result.rankingPointAwards[0].tournamentTitle, 'NYX Open');
     assert.equal('frontImageUrl' in result.identityDocuments, false);
+});
+
+test('looks up identity document filenames only for player accounts', async () => {
+    let query;
+    const repository = new PrismaUserRepository({
+        user: {
+            findFirst: async (args) => {
+                query = args;
+                return { identityDocuments: { frontImageUrl: 'generated-front.jpg' } };
+            },
+        },
+    });
+
+    assert.equal(await repository.getIdentityDocumentFilename(7, 'front'), 'generated-front.jpg');
+    assert.deepEqual(query.where, { id: 7, role: { is: { name: 'user' } } });
 });
 
 test('rejects invalid profile categories without updating the user', async () => {

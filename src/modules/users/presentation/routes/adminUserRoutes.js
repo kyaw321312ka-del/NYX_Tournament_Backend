@@ -8,9 +8,17 @@ function createAdminUserRouter({
     requireAdmin,
     listAdminPlayers,
     getAdminPlayerDetails,
+    getAdminIdentityDocument,
 }) {
     const router = express.Router();
 
+    router.get(
+        '/admin/users/:userId/identity-documents/:side',
+        authenticate,
+        requireAdmin,
+        validateRequest(userSchemas.identityDocumentParamsSchema, 'params'),
+        UserController.createGetAdminIdentityDocumentController(getAdminIdentityDocument),
+    );
     router.get(
         '/admin/users/:userId',
         authenticate,

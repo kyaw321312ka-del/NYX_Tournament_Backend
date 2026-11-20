@@ -127,6 +127,26 @@ function createGetAdminPlayerDetailsController(getAdminPlayerDetails) {
     };
 }
 
+function createGetAdminIdentityDocumentController(getAdminIdentityDocument) {
+    return async function getAdminIdentityDocumentRequest(req, res, next) {
+        try {
+            const document = await getAdminIdentityDocument.execute(
+                req.validatedParams.userId,
+                req.validatedParams.side,
+            );
+            res.set({
+                'Content-Type': document.contentType,
+                'Cache-Control': 'private, no-store',
+                'Content-Disposition': 'inline',
+                'X-Content-Type-Options': 'nosniff',
+            });
+            return res.status(200).send(document.buffer);
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
 module.exports = {
     listUsers,
     getUser,
@@ -137,4 +157,5 @@ module.exports = {
     createReviewIdentityDocumentsController,
     createListAdminPlayersController,
     createGetAdminPlayerDetailsController,
+    createGetAdminIdentityDocumentController,
 };

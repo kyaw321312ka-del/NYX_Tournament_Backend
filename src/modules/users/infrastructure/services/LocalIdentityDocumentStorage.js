@@ -67,6 +67,32 @@ class LocalIdentityDocumentStorage {
             }
         }
     }
+
+    async read(filename) {
+        if (typeof filename !== 'string' || path.basename(filename) !== filename) {
+            throw new HttpError(404, 'Identity document not found.');
+        }
+        const imageType = IMAGE_TYPES.find(({ extension }) => (
+            filename.toLowerCase().endsWith(extension)
+        ));
+        if (!imageType || !/^[\da-f-]+\.(jpg|png|webp)$/i.test(filename)) {
+            throw new HttpError(404, 'Identity document not found.');
+        }
+
+        try {
+            return {
+                buffer: await fs.readFile(path.join(this.directory, filename)),
+                contentType: imageType.extension === '.jpg'
+                    ? 'image/jpeg'
+                    : `image/${imageType.extension.slice(1)}`,
+            };
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                throw new HttpError(404, 'Identity document not found.');
+            }
+            throw error;
+        }
+    }
 }
 
 module.exports = LocalIdentityDocumentStorage;

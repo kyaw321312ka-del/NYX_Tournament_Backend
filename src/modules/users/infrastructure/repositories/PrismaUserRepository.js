@@ -155,6 +155,12 @@ class PrismaUserRepository {
                 frontUploaded: Boolean(identityDocuments?.frontImageUrl),
                 backUploaded: Boolean(identityDocuments?.backImageUrl),
                 verificationStatus: identityDocuments?.verificationStatus ?? null,
+                frontIdImg: identityDocuments?.frontImageUrl
+                    ? `/api/admin/users/${id}/identity-documents/front`
+                    : null,
+                backIdImg: identityDocuments?.backImageUrl
+                    ? `/api/admin/users/${id}/identity-documents/back`
+                    : null,
             },
             points,
             rankingPointAwards: rankingPointAwards.map((award) => ({
@@ -167,6 +173,27 @@ class PrismaUserRepository {
                 categoryName: award.tournamentCategory.eventCategory.name,
             })),
         };
+    }
+
+    async getIdentityDocumentFilename(userId, side) {
+        const user = await this.prisma.user.findFirst({
+            where: {
+                id: Number(userId),
+                role: { is: { name: 'user' } },
+            },
+            select: {
+                identityDocuments: {
+                    select: {
+                        frontImageUrl: true,
+                        backImageUrl: true,
+                    },
+                },
+            },
+        });
+        if (!user) {
+            throw new HttpError(404, 'Player not found.');
+        }
+        return user.identityDocuments?.[side === 'front' ? 'frontImageUrl' : 'backImageUrl'] ?? null;
     }
 
     async findProfileForUpdate(userId) {

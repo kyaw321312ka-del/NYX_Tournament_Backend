@@ -56,6 +56,10 @@ const userIdSchema = z.object({
     userId: z.coerce.number().int().positive(),
 });
 
+const identityDocumentParamsSchema = userIdSchema.extend({
+    side: z.enum(['front', 'back']),
+});
+
 const reviewIdentityDocumentsSchema = z.object({
     verificationStatus: z.enum(['approved', 'rejected']),
 }).strict();
@@ -69,6 +73,7 @@ module.exports = {
     updateProfileSchema,
     verifyEmailChangeSchema,
     userIdSchema,
+    identityDocumentParamsSchema,
     reviewIdentityDocumentsSchema,
     listAdminPlayersSchema,
 };

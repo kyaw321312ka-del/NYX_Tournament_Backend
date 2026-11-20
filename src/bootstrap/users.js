@@ -8,6 +8,7 @@ const VerifyEmailChange = require('../modules/users/application/use-cases/Verify
 const ReviewIdentityDocuments = require('../modules/users/application/use-cases/ReviewIdentityDocuments');
 const ListAdminPlayers = require('../modules/users/application/use-cases/ListAdminPlayers');
 const GetAdminPlayerDetails = require('../modules/users/application/use-cases/GetAdminPlayerDetails');
+const GetAdminIdentityDocument = require('../modules/users/application/use-cases/GetAdminIdentityDocument');
 const OtpService = require('../modules/auth/domain/services/OtpService');
 const EmailOtpSender = require('../modules/auth/infrastructure/services/EmailOtpSender');
 const PasswordHasher = require('../modules/auth/infrastructure/services/PasswordHasher');
@@ -42,6 +43,10 @@ function createUserModule({ prisma, authenticate }) {
     const reviewIdentityDocuments = new ReviewIdentityDocuments({ userRepository });
     const listAdminPlayers = new ListAdminPlayers({ userRepository });
     const getAdminPlayerDetails = new GetAdminPlayerDetails({ userRepository });
+    const getAdminIdentityDocument = new GetAdminIdentityDocument({
+        userRepository,
+        documentStorage: identityDocumentStorage,
+    });
 
     const requireAdmin = createRequireAdmin(prisma);
     return {
@@ -59,6 +64,7 @@ function createUserModule({ prisma, authenticate }) {
             requireAdmin,
             listAdminPlayers,
             getAdminPlayerDetails,
+            getAdminIdentityDocument,
         }),
     };
 }

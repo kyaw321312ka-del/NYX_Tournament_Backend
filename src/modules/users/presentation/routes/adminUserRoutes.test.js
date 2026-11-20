@@ -28,7 +28,25 @@ test('lists players through the admin-only endpoint with pagination', async (t) 
         },
         getAdminPlayerDetails: {
             async execute(userId) {
-                return { id: userId, name: 'Aung Myo', points: 3650 };
+                return {
+                    id: userId,
+                    name: 'Aung Myo',
+                    points: 3650,
+                    identityDocuments: {
+                        frontIdImg: `/api/admin/users/${userId}/identity-documents/front`,
+                        backIdImg: `/api/admin/users/${userId}/identity-documents/back`,
+                    },
+                };
+            },
+        },
+        getAdminIdentityDocument: {
+            async execute(userId, side) {
+                assert.equal(userId, 8843);
+                assert.equal(side, 'front');
+                return {
+                    buffer: Buffer.from('identity image'),
+                    contentType: 'image/jpeg',
+                };
             },
         },
     }));
@@ -55,5 +73,14 @@ test('lists players through the admin-only endpoint with pagination', async (t) 
     );
     const detailsBody = await detailsResponse.json();
     assert.equal(detailsResponse.status, 200);
-    assert.deepEqual(detailsBody.data, { id: 8843, name: 'Aung Myo', points: 3650 });
+    assert.equal(detailsBody.data.identityDocuments.frontIdImg, '/api/admin/users/8843/identity-documents/front');
+    assert.equal(detailsBody.data.identityDocuments.backIdImg, '/api/admin/users/8843/identity-documents/back');
+
+    const documentResponse = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/admin/users/8843/identity-documents/front`,
+    );
+    assert.equal(documentResponse.status, 200);
+    assert.equal(documentResponse.headers.get('content-type'), 'image/jpeg');
+    assert.equal(documentResponse.headers.get('cache-control'), 'private, no-store');
+    assert.equal(await documentResponse.text(), 'identity image');
 });

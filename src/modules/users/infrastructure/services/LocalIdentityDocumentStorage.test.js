@@ -33,6 +33,18 @@ test('rejects empty or unsupported identity document data', async (t) => {
     await assert.rejects(storage.save(Buffer.from('not an image')), (error) => error.statusCode === 415);
 });
 
+test('reads only generated identity-document filenames with the correct image content type', async (t) => {
+    const storage = await createStorage(t);
+    const image = Buffer.from([0xff, 0xd8, 0xff, 0x00]);
+    const filename = await storage.save(image);
+
+    const document = await storage.read(filename);
+
+    assert.deepEqual(document, { buffer: image, contentType: 'image/jpeg' });
+    await assert.rejects(storage.read('../secret.jpg'), (error) => error.statusCode === 404);
+    await assert.rejects(storage.read('missing.jpg'), (error) => error.statusCode === 404);
+});
+
 test('removes only generated filenames from the private storage directory', async (t) => {
     const storage = await createStorage(t);
     const filename = await storage.save(Buffer.from([0xff, 0xd8, 0xff, 0x00]));

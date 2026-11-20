@@ -39,7 +39,10 @@ documents, and `Pending` otherwise. The “View Details” action is a frontend
 control; it can load a player's details with
 `GET /api/admin/users/:userId`, using the row's numeric `id`. The detail
 response includes profile and category data, identity-document upload and
-review status (not private document filenames), total points, and award history.
+review status, total points, and award history. `identityDocuments.frontIdImg`
+and `identityDocuments.backIdImg` contain admin-only image endpoints when each
+image is present. Fetch these endpoints with the admin bearer token; they return
+the image bytes with private, non-cacheable response headers.
 
 Registration uses `multipart/form-data` with text fields `name`, `email`,
 `password`, `gender`, `birthday`, one or more `categoryIds`, and optional
