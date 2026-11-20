@@ -45,6 +45,7 @@ class TournamentDraw {
                 id: match.id,
                 matchNumber: match.matchNumber,
                 status: match.status,
+                result: match.result ?? null,
                 winner: serializeParticipant(match.winnerParticipant),
                 slots: (match.slots ?? []).map((slot) => ({
                     slotNumber: slot.slotNumber,
@@ -61,11 +62,20 @@ class TournamentDraw {
             version: this.version,
             status: this.status,
             configuration: {
-                ...configuration,
+                drawFormat: configuration.drawFormat ?? 'SINGLE_ELIMINATION',
+                seedingMethod: configuration.seedingMethod ?? 'MANUAL',
+                bracketSize: configuration.bracketSize ?? null,
+                scoringRules: configuration.scoringRules ?? null,
+                pointTiers: configuration.pointTiers ?? [],
                 eligibleRegistrationCount: eligibleRegistrationIds.length,
             },
+            positions: (this.configurationSnapshot?.positions ?? []).map((position) => ({
+                bracketPosition: position.bracketPosition,
+                assignable: position.assignable,
+            })),
             generatedAt: this.generatedAt,
             publishedAt: this.publishedAt,
+            finalizedAt: this.finalizedAt,
             category: this.tournamentCategory ? {
                 id: this.tournamentCategory.id,
                 tournamentId: this.tournamentCategory.tournamentId,

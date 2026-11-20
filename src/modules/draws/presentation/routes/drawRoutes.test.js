@@ -46,6 +46,19 @@ function createController() {
         getPublishedDraw: (_req, res) => res.json({ success: true, data: { status: 'PUBLISHED' } }),
         assignPositions: (_req, res) => res.json({ success: true }),
         publish: (_req, res) => res.json({ success: true }),
+        listRankingPointAwards: (_req, res) => res.json({ success: true, data: [] }),
+        recordMatchResult: (req, res) => res.json({
+            success: true,
+            data: {
+                drawId: req.validatedParams.drawId,
+                matchId: req.validatedParams.matchId,
+                games: req.validatedBody.games,
+            },
+        }),
+        finalizeResults: (req, res) => res.json({
+            success: true,
+            data: { drawId: req.validatedParams.drawId },
+        }),
     };
 }
 
@@ -83,4 +96,44 @@ test('public draw reads do not pass through admin authentication', async (t) => 
         success: true,
         data: { status: 'PUBLISHED' },
     });
+});
+
+test('admin match results validate score input and require the guarded route', async (t) => {
+    const adminCalls = { count: 0 };
+    const baseUrl = await createServer(t, createController(), adminCalls);
+
+    const response = await fetch(`${baseUrl}/admin/draws/7/matches/22/result`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            games: [
+                { gameNumber: 1, participant1Score: 21, participant2Score: 17 },
+                { gameNumber: 2, participant1Score: 19, participant2Score: 21 },
+                { gameNumber: 3, participant1Score: 21, participant2Score: 18 },
+            ],
+        }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(adminCalls.count, 1);
+    assert.deepEqual((await response.json()).data, {
+        drawId: 7,
+        matchId: 22,
+        games: [
+            { gameNumber: 1, participant1Score: 21, participant2Score: 17 },
+            { gameNumber: 2, participant1Score: 19, participant2Score: 21 },
+            { gameNumber: 3, participant1Score: 21, participant2Score: 18 },
+        ],
+    });
+});
+
+test('ranking point history is available only through the guarded admin route', async (t) => {
+    const adminCalls = { count: 0 };
+    const baseUrl = await createServer(t, createController(), adminCalls);
+
+    const response = await fetch(`${baseUrl}/admin/tournament-categories/4/ranking-point-awards`);
+
+    assert.equal(response.status, 200);
+    assert.equal(adminCalls.count, 1);
+    assert.deepEqual((await response.json()).data, []);
 });

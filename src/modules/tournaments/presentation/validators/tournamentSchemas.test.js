@@ -30,6 +30,12 @@ test('category entry fees are validated and tournament-level fees are rejected',
         categories: [{ ...category, entryFee: 2500.5 }],
     });
     assert.equal(result.categories[0].entryFee, 2500.5);
+    assert.deepEqual([
+        result.categories[0].pointsToWin,
+        result.categories[0].winningMargin,
+        result.categories[0].maxPoints,
+        result.categories[0].gamesToWin,
+    ], [21, 2, 30, 2]);
 
     assert.equal(createTournamentSchema.safeParse({
         ...validTournament,
@@ -39,6 +45,40 @@ test('category entry fees are validated and tournament-level fees are rejected',
     assert.equal(createTournamentSchema.safeParse({
         ...validTournament,
         entryFee: 2500,
+    }).success, false);
+});
+
+test('category scoring rules accept the 15-point format and reject invalid caps', () => {
+    const category = {
+        categoryCode: 'MS',
+        categoryName: 'Men Singles',
+        pairingType: 'singles',
+        matchFormat: 'Best of 3',
+    };
+    const result = createTournamentSchema.parse({
+        ...validTournament,
+        categories: [{
+            ...category,
+            pointsToWin: 15,
+            winningMargin: 2,
+            maxPoints: 21,
+            gamesToWin: 2,
+        }],
+    });
+    assert.equal(result.categories[0].maxPoints, 21);
+    assert.equal(createTournamentSchema.safeParse({
+        ...validTournament,
+        categories: [{ ...category, pointsToWin: 21, maxPoints: 15 }],
+    }).success, false);
+    assert.equal(createTournamentSchema.safeParse({
+        ...validTournament,
+        categories: [{
+            ...category,
+            pointTiers: [
+                { position: 1, label: 'Champion', points: 300 },
+                { position: 1, label: 'Winner', points: 250 },
+            ],
+        }],
     }).success, false);
 });
 

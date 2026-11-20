@@ -1,10 +1,14 @@
 # Tournament draws
 
-The first manual draw workflow supports single elimination. Only confirmed
-registrations (normally confirmed after payment approval) are eligible. Draft
-bracket size is generated as the smallest power of two that fits the confirmed
-registrations present when the draft is created. The bracket positions remain
-empty until assigned.
+The current draw workflow supports `SINGLE_ELIMINATION` only. It uses manual
+seeding and requires confirmed registrations (normally confirmed after payment
+approval). Drafts create the empty bracket structure first; admins then assign
+eligible registrations to its positions.
+
+Admins configure category scoring rules and placement point tiers through
+`POST /api/tournaments` or `PUT /api/tournaments/:id`. The scoring settings
+are snapshotted when the draw is created, so results use the same rules even
+if category settings later change.
 
 All admin endpoints require an admin bearer token.
 
@@ -23,8 +27,8 @@ All admin endpoints require an admin bearer token.
    }
    ```
 
-3. Assign or replace positions. The `assignments` array is the complete draft
-   assignment set; omit a prior assignment to clear it:
+3. Assign or replace positions. The `assignments` array is the complete set of
+   draft assignments; omit a prior assignment to clear it:
 
    `PUT /api/admin/draws/:drawId/positions`
 
@@ -32,36 +36,53 @@ All admin endpoints require an admin bearer token.
    {
      "assignments": [
        { "registrationId": 41, "bracketPosition": 1 },
-       { "registrationId": 44, "bracketPosition": 4 },
-       { "registrationId": 52, "bracketPosition": 8 }
+       { "registrationId": 44, "bracketPosition": 4 }
      ]
    }
    ```
 
-   Registrations must have been confirmed when the draft was created and must
-   still be confirmed in the same tournament category. Each registration and
-   each bracket position can be used only once.
+   Each registration and bracket position may be used only once.
 
-4. Publish after assigning at least two entries:
+4. Publish:
 
    `POST /api/admin/draws/:drawId/publish`
 
-   Empty positions are treated as byes. Bye winners automatically advance
-   through the bracket; matches awaiting played matches remain pending.
-   Publishing archives the category's previous published draw.
+   Empty positions are byes, and bye winners advance automatically.
 
-5. Read the latest admin draw with
+5. Submit completed match games. Game scores are validated against the scoring
+   rules snapshotted from the tournament category when the draw was created:
+
+   `PUT /api/admin/draws/:drawId/matches/:matchId/result`
+
+   ```json
+   {
+     "games": [
+       { "gameNumber": 1, "participant1Score": 21, "participant2Score": 18 },
+       { "gameNumber": 2, "participant1Score": 19, "participant2Score": 21 },
+       { "gameNumber": 3, "participant1Score": 21, "participant2Score": 15 }
+     ]
+   }
+   ```
+
+   The winner advances into the next round automatically. A game must reach
+   `pointsToWin` and the configured margin, unless the winner reaches
+   `maxPoints`, where the next point wins.
+
+6. Finalize after every playable match is completed:
+
+   `POST /api/admin/draws/:drawId/finalize-results`
+
+   Configured `pointTiers` are awarded by final placement. In doubles, both
+   registration members receive the placement points. Unconfigured placements
+   receive no award, and a player cannot be awarded twice for the same
+   tournament category.
+
+   Read the recorded award history with
+   `GET /api/admin/tournament-categories/:categoryId/ranking-point-awards`.
+
+7. Read the latest admin draw with
    `GET /api/admin/tournament-categories/:categoryId/draws`, or the published
    draw without authentication with
    `GET /api/tournament-categories/:categoryId/draw`.
 
-Create a new draft if additional registrations become confirmed after the
-current draft was generated. Draw versions and their assignments are retained.
-Match result entry and winner advancement after played matches are not yet
-implemented.
-
-Apply the schema migration before using the draw endpoints:
-
-```sh
-npx prisma migrate deploy
-```
+Round-robin and group-knockout formats are deferred.

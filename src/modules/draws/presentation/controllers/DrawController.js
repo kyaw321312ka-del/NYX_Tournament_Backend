@@ -77,6 +77,47 @@ function createDrawController({ manageTournamentDraws }) {
                 return next(error);
             }
         },
+
+        async recordMatchResult(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.recordMatchResult(
+                    req.validatedParams.drawId,
+                    req.validatedParams.matchId,
+                    req.validatedBody.games,
+                );
+                return res.status(200).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async finalizeResults(req, res, next) {
+            try {
+                const result = await manageTournamentDraws.finalizeResults(
+                    req.validatedParams.drawId,
+                );
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        draw: result.draw.toJSON(),
+                        rankingPointAwards: result.rankingPointAwards,
+                    },
+                });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async listRankingPointAwards(req, res, next) {
+            try {
+                const awards = await manageTournamentDraws.listRankingPointAwards(
+                    req.validatedParams.categoryId,
+                );
+                return res.status(200).json({ success: true, data: awards });
+            } catch (error) {
+                return next(error);
+            }
+        },
     };
 }
 

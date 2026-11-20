@@ -101,6 +101,7 @@ model User {
   createdTournaments         Tournament[]
   registrationsCreated       TournamentRegistration[]       @relation("RegistrationCreator")
   registrationMemberships    TournamentRegistrationMember[]
+  rankingPointAwards         TournamentRankingPointAward[]
   partnerInvitationsSent     TournamentPartnerInvitation[]  @relation("PartnerInvitationSender")
   partnerInvitationsReceived TournamentPartnerInvitation[]  @relation("PartnerInvitationReceiver")
   paymentsVerified           TournamentPayment[]            @relation("PaymentVerifier")
@@ -309,6 +310,10 @@ model TournamentCategory {
   entryStatus         String   @default("open") @map("entry_status") @db.VarChar(30)
   eligibilityCriteria String?  @map("eligibility_criteria") @db.Text
   pointsPool          Int      @default(0) @map("points_pool")
+  pointsToWin         Int      @default(21) @map("points_to_win")
+  winningMargin       Int      @default(2) @map("winning_margin")
+  maxPoints           Int      @default(30) @map("max_points")
+  gamesToWin          Int      @default(2) @map("games_to_win")
   shuttleName         String?  @map("shuttle_name") @db.VarChar(150)
   shuttleSpeed        String?  @map("shuttle_speed") @db.VarChar(30)
   createdAt           DateTime @default(now()) @map("created_at")
@@ -322,6 +327,7 @@ model TournamentCategory {
   partnerInvitations TournamentPartnerInvitation[]
   drawConfiguration  TournamentDrawConfiguration?
   draws              TournamentDraw[]
+  rankingPointAwards TournamentRankingPointAward[]
 
   @@unique([tournamentId, categoryId, ageGroupId])
   @@index([tournamentId])
@@ -365,6 +371,28 @@ model CategoryPointTier {
   @@map("category_point_tiers")
 }
 
+model TournamentRankingPointAward {
+  id                   Int      @id @default(autoincrement())
+  tournamentCategoryId Int      @map("tournament_category_id")
+  drawId               Int      @map("draw_id")
+  registrationId       Int      @map("registration_id")
+  userId               Int      @map("user_id")
+  position             Int
+  label                String   @db.VarChar(100)
+  points               Int
+  awardedAt            DateTime @default(now()) @map("awarded_at")
+
+  tournamentCategory TournamentCategory      @relation(fields: [tournamentCategoryId], references: [id], onDelete: Restrict)
+  draw               TournamentDraw          @relation(fields: [drawId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Restrict)
+  registration       TournamentRegistration   @relation(fields: [registrationId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Restrict)
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([tournamentCategoryId, userId], map: "trpa_category_user_uq")
+  @@index([userId, awardedAt], map: "trpa_user_awarded_idx")
+  @@index([drawId], map: "trpa_draw_idx")
+  @@map("tournament_ranking_point_awards")
+}
+
 // ==========================================
 // 10. TOURNAMENT REGISTRATION STATUSES
 // ==========================================
@@ -400,6 +428,7 @@ model TournamentRegistration {
   partnerInvitation TournamentPartnerInvitation?
   payments          TournamentPayment[]
   drawParticipants  TournamentDrawParticipant[]
+  rankingPointAwards TournamentRankingPointAward[]
 
   @@unique([id, tournamentCategoryId])
   @@index([tournamentCategoryId, statusId])
@@ -415,6 +444,7 @@ model TournamentDraw {
   configurationSnapshot Json                 @map("configuration_snapshot")
   generatedAt           DateTime             @default(now()) @map("generated_at")
   publishedAt           DateTime?            @map("published_at")
+  finalizedAt          DateTime?            @map("finalized_at")
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
 
@@ -422,6 +452,7 @@ model TournamentDraw {
   participants       TournamentDrawParticipant[]
   matches            TournamentDrawMatch[]
   matchSlots         TournamentDrawMatchSlot[]
+  rankingPointAwards TournamentRankingPointAward[]
 
   @@unique([tournamentCategoryId, version], map: "td_category_version_uq")
   @@unique([id, tournamentCategoryId], map: "td_id_category_uq")
@@ -457,6 +488,7 @@ model TournamentDrawMatch {
   roundNumber         Int                       @map("round_number")
   matchNumber         Int                       @map("match_number")
   status              TournamentDrawMatchStatus @default(PENDING)
+  result              Json?
   winnerParticipantId Int?                      @map("winner_participant_id")
   createdAt           DateTime                  @default(now()) @map("created_at")
   updatedAt           DateTime                  @updatedAt @map("updated_at")
@@ -489,8 +521,8 @@ model TournamentDrawMatchSlot {
   sourceMatch TournamentDrawMatch?       @relation("DrawSlotSourceMatch", fields: [sourceMatchId], references: [id], onDelete: Cascade)
 
   @@unique([matchId, slotNumber], map: "tdms_match_slot_uq")
-  @@unique([drawId, bracketPosition], map: "tdms_draw_position_uq")
   @@unique([sourceMatchId], map: "tdms_source_match_uq")
+  @@unique([drawId, bracketPosition], map: "tdms_draw_position_uq")
   @@index([sourceMatchId], map: "tdms_source_match_idx")
   @@map("tournament_draw_match_slots")
 }

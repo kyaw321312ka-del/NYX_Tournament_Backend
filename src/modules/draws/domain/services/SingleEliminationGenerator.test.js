@@ -3,20 +3,21 @@ const assert = require('node:assert/strict');
 const SingleEliminationGenerator = require('./SingleEliminationGenerator');
 
 test('generates bracket positions and feeder matches for a power-of-two draw', () => {
-    const rounds = new SingleEliminationGenerator().generate(8);
+    const { positions, matches } = new SingleEliminationGenerator().generate(8);
 
-    assert.equal(rounds.length, 3);
-    assert.deepEqual(rounds[0][0].slots, [
+    assert.equal(positions.length, 8);
+    assert.equal(matches.filter(({ roundNumber }) => roundNumber === 3).length, 1);
+    assert.deepEqual(matches[0].slots, [
         { slotNumber: 1, bracketPosition: 1 },
         { slotNumber: 2, bracketPosition: 2 },
     ]);
-    assert.deepEqual(rounds[1][0].slots, [
-        { slotNumber: 1, sourceMatchNumber: 1 },
-        { slotNumber: 2, sourceMatchNumber: 2 },
+    assert.deepEqual(matches.find(({ roundNumber, matchNumber }) => roundNumber === 2 && matchNumber === 1).slots, [
+        { slotNumber: 1, sourceMatchKey: 'SE-R1-M1' },
+        { slotNumber: 2, sourceMatchKey: 'SE-R1-M2' },
     ]);
-    assert.deepEqual(rounds[2][0].slots, [
-        { slotNumber: 1, sourceMatchNumber: 1 },
-        { slotNumber: 2, sourceMatchNumber: 2 },
+    assert.deepEqual(matches.find(({ roundNumber, matchNumber }) => roundNumber === 3 && matchNumber === 1).slots, [
+        { slotNumber: 1, sourceMatchKey: 'SE-R2-M1' },
+        { slotNumber: 2, sourceMatchKey: 'SE-R2-M2' },
     ]);
 });
 

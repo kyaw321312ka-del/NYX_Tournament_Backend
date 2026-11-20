@@ -16,6 +16,13 @@ function createDrawRouter({ controller, schemas, authenticate, requireAdmin }) {
         validate(schemas.categoryIdSchema, 'params'),
         controller.listEligibleRegistrations,
     );
+    router.get(
+        '/admin/tournament-categories/:categoryId/ranking-point-awards',
+        authenticate,
+        requireAdmin,
+        validate(schemas.categoryIdSchema, 'params'),
+        controller.listRankingPointAwards,
+    );
     router.post(
         '/admin/tournament-categories/:categoryId/draws',
         authenticate,
@@ -52,6 +59,21 @@ function createDrawRouter({ controller, schemas, authenticate, requireAdmin }) {
         requireAdmin,
         validate(schemas.drawIdSchema, 'params'),
         controller.publish,
+    );
+    router.put(
+        '/admin/draws/:drawId/matches/:matchId/result',
+        authenticate,
+        requireAdmin,
+        validate(schemas.matchIdSchema, 'params'),
+        validate(schemas.recordMatchResultSchema),
+        controller.recordMatchResult,
+    );
+    router.post(
+        '/admin/draws/:drawId/finalize-results',
+        authenticate,
+        requireAdmin,
+        validate(schemas.drawIdSchema, 'params'),
+        controller.finalizeResults,
     );
 
     return router;

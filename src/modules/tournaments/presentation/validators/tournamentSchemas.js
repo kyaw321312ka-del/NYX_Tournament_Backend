@@ -43,10 +43,23 @@ const category = z.object({
     entryStatus: z.enum(registrationStatuses).default(RegistrationStatus.OPEN),
     eligibilityCriteria: z.string().trim().optional().nullable(),
     pointsPool: z.number().int().min(0).default(0),
+    pointsToWin: z.number().int().positive().default(21),
+    winningMargin: z.number().int().positive().default(2),
+    maxPoints: z.number().int().positive().default(30),
+    gamesToWin: z.number().int().positive().max(5).default(2),
     shuttleName: z.string().trim().max(150).optional().nullable(),
     shuttleSpeed: z.string().trim().max(30).optional().nullable(),
     ageGroup: ageGroup.nullable().optional(),
     pointTiers: z.array(pointTier).default([]),
+}).strict().refine((value) => value.maxPoints >= value.pointsToWin, {
+    path: ['maxPoints'],
+    message: 'Maximum points must be greater than or equal to points to win.',
+}).refine((value) => value.winningMargin <= value.maxPoints, {
+    path: ['winningMargin'],
+    message: 'Winning margin cannot exceed the configured maximum points.',
+}).refine((value) => new Set(value.pointTiers.map(({ position }) => position)).size === value.pointTiers.length, {
+    path: ['pointTiers'],
+    message: 'Ranking point placements must be unique within a category.',
 });
 
 const fields = {

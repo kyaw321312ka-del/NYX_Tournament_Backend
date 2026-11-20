@@ -1,5 +1,6 @@
 const HttpError = require('../../../../shared/errors/HttpError');
 const TournamentDraw = require('../../domain/entities/TournamentDraw');
+const { determineMatchWinner } = require('../../domain/services/MatchScoring');
 
 const registrationInclude = {
     status: { select: { name: true } },
@@ -44,6 +45,60 @@ const drawInclude = {
 
 function nextBracketSize(entrantCount) {
     return 2 ** Math.ceil(Math.log2(entrantCount));
+}
+
+async function advanceResolvedMatches(transaction, drawId) {
+    const matches = await transaction.tournamentDrawMatch.findMany({
+        where: { drawId },
+        orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }],
+        include: { slots: { orderBy: { slotNumber: 'asc' } } },
+    });
+    const outcomes = new Map();
+
+    for (const match of matches) {
+        let unresolvedSource = false;
+        const participants = [];
+        for (const slot of match.slots) {
+            let participantId = slot.participantId;
+            if (slot.sourceMatchId !== null) {
+                const source = outcomes.get(slot.sourceMatchId);
+                if (!source || !source.resolved) {
+                    unresolvedSource = true;
+                    continue;
+                }
+                participantId = source.winnerParticipantId;
+            }
+            if (slot.participantId !== participantId) {
+                await transaction.tournamentDrawMatchSlot.update({
+                    where: { id: slot.id },
+                    data: { participantId },
+                });
+            }
+            if (participantId !== null) participants.push(participantId);
+        }
+
+        let status = match.status;
+        let winnerParticipantId = match.winnerParticipantId;
+        if (match.status === 'PENDING' && !unresolvedSource) {
+            winnerParticipantId = null;
+            if (participants.length === 0) {
+                status = 'EMPTY';
+            } else if (participants.length === 1) {
+                status = 'BYE';
+                winnerParticipantId = participants[0];
+            }
+        }
+        if (status !== match.status || winnerParticipantId !== match.winnerParticipantId) {
+            await transaction.tournamentDrawMatch.update({
+                where: { id: match.id },
+                data: { status, winnerParticipantId },
+            });
+        }
+        outcomes.set(match.id, {
+            resolved: status !== 'PENDING',
+            winnerParticipantId: status === 'EMPTY' ? null : winnerParticipantId,
+        });
+    }
 }
 
 class PrismaTournamentDrawRepository {
@@ -103,8 +158,39 @@ class PrismaTournamentDrawRepository {
             if (eligibleRegistrations.length < 2) {
                 throw new HttpError(409, 'At least two confirmed registrations are required to create a draw.');
             }
+            const category = await transaction.tournamentCategory.findUnique({
+                where: { id: categoryId },
+                select: {
+                    pointsToWin: true,
+                    winningMargin: true,
+                    maxPoints: true,
+                    gamesToWin: true,
+                    pointTiers: {
+                        orderBy: { position: 'asc' },
+                        select: { position: true, label: true, points: true },
+                    },
+                },
+            });
+            if (!category) {
+                throw new HttpError(404, 'Tournament category not found.');
+            }
+            if (
+                category.pointsToWin < 1
+                || category.winningMargin < 1
+                || category.maxPoints < category.pointsToWin
+                || category.winningMargin > category.maxPoints
+                || category.gamesToWin < 1
+                || category.gamesToWin > 5
+            ) {
+                throw new HttpError(409, 'Tournament category scoring rules are invalid.');
+            }
 
             const bracketSize = nextBracketSize(eligibleRegistrations.length);
+            const drawConfiguration = {
+                ...configuration,
+                groupCount: null,
+                qualifiersPerGroup: null,
+            };
             const latest = await transaction.tournamentDraw.findFirst({
                 where: { tournamentCategoryId: categoryId },
                 orderBy: { version: 'desc' },
@@ -124,58 +210,71 @@ class PrismaTournamentDrawRepository {
                 where: { tournamentCategoryId: categoryId },
                 create: {
                     tournamentCategoryId: categoryId,
-                    drawFormat: configuration.drawFormat,
-                    seedingMethod: configuration.seedingMethod,
+                    drawFormat: drawConfiguration.drawFormat,
+                    seedingMethod: drawConfiguration.seedingMethod,
+                    groupCount: drawConfiguration.groupCount,
+                    qualifiersPerGroup: drawConfiguration.qualifiersPerGroup,
                 },
                 update: {
-                    drawFormat: configuration.drawFormat,
-                    seedingMethod: configuration.seedingMethod,
+                    drawFormat: drawConfiguration.drawFormat,
+                    seedingMethod: drawConfiguration.seedingMethod,
+                    groupCount: drawConfiguration.groupCount,
+                    qualifiersPerGroup: drawConfiguration.qualifiersPerGroup,
                 },
             });
 
+            const structure = this.generator.generate(bracketSize);
+            const assignmentPositions = structure.positions.filter(({ assignable }) => assignable);
             const draw = await transaction.tournamentDraw.create({
                 data: {
                     tournamentCategoryId: categoryId,
                     version,
                     configurationSnapshot: {
-                        ...configuration,
+                        ...drawConfiguration,
                         bracketSize,
+                        positionCount: structure.positions.length,
+                        expectedMatchCount: structure.matches.length,
+                        positions: structure.positions,
+                        assignmentPositions,
+                        scoringRules: {
+                            pointsToWin: category.pointsToWin,
+                            winningMargin: category.winningMargin,
+                            maxPoints: category.maxPoints,
+                            gamesToWin: category.gamesToWin,
+                        },
+                        pointTiers: category.pointTiers,
                         eligibleRegistrationIds: eligibleRegistrations.map(({ id }) => id),
                     },
                 },
                 select: { id: true },
             });
 
-            const rounds = this.generator.generate(bracketSize);
-            const matchIdsByRound = new Map();
-            for (const round of rounds) {
-                const matchIds = new Map();
-                for (const plannedMatch of round) {
-                    const match = await transaction.tournamentDrawMatch.create({
-                        data: {
-                            drawId: draw.id,
-                            roundNumber: plannedMatch.roundNumber,
-                            matchNumber: plannedMatch.matchNumber,
-                        },
-                        select: { id: true },
-                    });
-                    matchIds.set(plannedMatch.matchNumber, match.id);
-
-                    await transaction.tournamentDrawMatchSlot.createMany({
-                        data: plannedMatch.slots.map((slot) => ({
-                            drawId: draw.id,
-                            matchId: match.id,
-                            slotNumber: slot.slotNumber,
-                            bracketPosition: slot.bracketPosition ?? null,
-                            sourceMatchId: slot.sourceMatchNumber
-                                ? matchIdsByRound.get(plannedMatch.roundNumber - 1)?.get(slot.sourceMatchNumber)
-                                : null,
-                            createdAt: now,
-                            updatedAt: now,
-                        })),
-                    });
-                }
-                matchIdsByRound.set(round[0].roundNumber, matchIds);
+            const matchIds = new Map();
+            for (const plannedMatch of structure.matches) {
+                const match = await transaction.tournamentDrawMatch.create({
+                    data: {
+                        drawId: draw.id,
+                        roundNumber: plannedMatch.roundNumber,
+                        matchNumber: plannedMatch.matchNumber,
+                    },
+                    select: { id: true },
+                });
+                matchIds.set(plannedMatch.key, match.id);
+            }
+            for (const plannedMatch of structure.matches) {
+                await transaction.tournamentDrawMatchSlot.createMany({
+                    data: plannedMatch.slots.map((slot) => ({
+                        drawId: draw.id,
+                        matchId: matchIds.get(plannedMatch.key),
+                        slotNumber: slot.slotNumber,
+                        bracketPosition: slot.bracketPosition ?? null,
+                        sourceMatchId: slot.sourceMatchKey
+                            ? matchIds.get(slot.sourceMatchKey)
+                            : null,
+                        createdAt: now,
+                        updatedAt: now,
+                    })),
+                });
             }
 
             return this.getDrawRecord(transaction, draw.id);
@@ -223,6 +322,38 @@ class PrismaTournamentDrawRepository {
         return TournamentDraw.fromRecord(draw);
     }
 
+    async listRankingPointAwards(tournamentCategoryId) {
+        const categoryId = Number(tournamentCategoryId);
+        const category = await this.prisma.tournamentCategory.findUnique({
+            where: { id: categoryId },
+            select: { id: true },
+        });
+        if (!category) {
+            throw new HttpError(404, 'Tournament category not found.');
+        }
+
+        const awards = await this.prisma.tournamentRankingPointAward.findMany({
+            where: { tournamentCategoryId: categoryId },
+            orderBy: [{ awardedAt: 'asc' }, { id: 'asc' }],
+            include: {
+                user: { select: { id: true, name: true } },
+                draw: { select: { id: true, version: true } },
+            },
+        });
+        return awards.map((award) => ({
+            id: award.id,
+            tournamentCategoryId: award.tournamentCategoryId,
+            drawId: award.drawId,
+            drawVersion: award.draw.version,
+            registrationId: award.registrationId,
+            player: award.user,
+            position: award.position,
+            label: award.label,
+            points: award.points,
+            awardedAt: award.awardedAt,
+        }));
+    }
+
     async assignPositions(drawId, assignments) {
         const id = Number(drawId);
         return this.prisma.$transaction(async (transaction) => {
@@ -248,15 +379,26 @@ class PrismaTournamentDrawRepository {
 
             const bracketSize = draw.configurationSnapshot.bracketSize;
             const eligibleIds = draw.configurationSnapshot.eligibleRegistrationIds;
-            if (!Number.isInteger(bracketSize) || !Array.isArray(eligibleIds)) {
+            const assignmentPositions = draw.configurationSnapshot.assignmentPositions
+                ?? (Number.isInteger(bracketSize)
+                    ? Array.from({ length: bracketSize }, (_, index) => ({
+                        bracketPosition: index + 1,
+                        assignable: true,
+                    }))
+                    : null);
+            if (!Number.isInteger(draw.configurationSnapshot.positionCount) || !Array.isArray(eligibleIds)
+                || !Array.isArray(assignmentPositions)) {
                 throw new HttpError(409, 'This draw draft is outdated. Create a new draft before assigning positions.');
             }
+            const positionByNumber = new Map(assignmentPositions.map((position) => [
+                position.bracketPosition,
+                position,
+            ]));
             const positions = new Set();
             const registrationIds = new Set();
             for (const assignment of assignments) {
                 if (
-                    assignment.bracketPosition < 1
-                    || assignment.bracketPosition > bracketSize
+                    !positionByNumber.has(assignment.bracketPosition)
                     || positions.has(assignment.bracketPosition)
                     || registrationIds.has(assignment.registrationId)
                 ) {
@@ -348,8 +490,8 @@ class PrismaTournamentDrawRepository {
             }
             const bracketSize = draw.configurationSnapshot.bracketSize;
             if (
-                !Number.isInteger(bracketSize)
-                || draw.matches.length !== bracketSize - 1
+                !Number.isInteger(draw.configurationSnapshot.expectedMatchCount)
+                || draw.matches.length !== draw.configurationSnapshot.expectedMatchCount
                 || draw.matches.some(({ slots }) => slots.length !== 2)
             ) {
                 throw new HttpError(409, 'This draw does not have a complete bracket structure. Create a new draft.');
@@ -357,7 +499,6 @@ class PrismaTournamentDrawRepository {
             if (draw.participants.length < 2) {
                 throw new HttpError(400, 'Assign at least two confirmed registrations before publishing the draw.');
             }
-
             const confirmed = await transaction.tournamentRegistration.findMany({
                 where: {
                     id: { in: draw.participants.map(({ registrationId }) => registrationId) },
@@ -437,6 +578,222 @@ class PrismaTournamentDrawRepository {
 
             return this.getDrawRecord(transaction, id);
         }, { isolationLevel: 'Serializable' }).then(TournamentDraw.fromRecord);
+    }
+
+    async recordMatchResult(drawId, matchId, games) {
+        const id = Number(drawId);
+        const matchRecordId = Number(matchId);
+        return this.prisma.$transaction(async (transaction) => {
+            const drawRows = await transaction.$queryRaw`
+                SELECT id FROM tournament_draws WHERE id = ${id} FOR UPDATE
+            `;
+            if (!drawRows.length) {
+                throw new HttpError(404, 'Tournament draw not found.');
+            }
+
+            const draw = await transaction.tournamentDraw.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    status: true,
+                    finalizedAt: true,
+                    configurationSnapshot: true,
+                },
+            });
+            if (draw.status !== 'PUBLISHED') {
+                throw new HttpError(409, 'Match results can only be recorded for a published draw.');
+            }
+            if (draw.finalizedAt) {
+                throw new HttpError(409, 'Results have been finalized and can no longer be changed.');
+            }
+
+            const match = await transaction.tournamentDrawMatch.findFirst({
+                where: { id: matchRecordId, drawId: id },
+                include: { slots: { orderBy: { slotNumber: 'asc' } } },
+            });
+            if (!match) {
+                throw new HttpError(404, 'Tournament draw match not found.');
+            }
+            if (match.status !== 'PENDING') {
+                throw new HttpError(409, 'Only pending matches can receive results.');
+            }
+            if (match.slots.length !== 2 || match.slots.some(({ participantId }) => participantId === null)) {
+                throw new HttpError(409, 'Both match positions must have assigned participants before recording a result.');
+            }
+
+            const scoringRules = draw.configurationSnapshot.scoringRules;
+            if (!scoringRules) {
+                throw new HttpError(409, 'This draw has no scoring-rule snapshot. Create a new draft before recording results.');
+            }
+            let winnerNumber;
+            try {
+                winnerNumber = determineMatchWinner(games, scoringRules);
+            } catch (error) {
+                if (error instanceof RangeError) {
+                    throw new HttpError(400, error.message);
+                }
+                throw error;
+            }
+            const winnerParticipantId = match.slots[winnerNumber - 1].participantId;
+            await transaction.tournamentDrawMatch.update({
+                where: { id: match.id },
+                data: {
+                    status: 'COMPLETED',
+                    result: { games },
+                    winnerParticipantId,
+                },
+            });
+            await advanceResolvedMatches(transaction, id);
+
+            return this.getDrawRecord(transaction, id);
+        }, { isolationLevel: 'Serializable' }).then(TournamentDraw.fromRecord);
+    }
+
+    async finalizeResults(drawId) {
+        const id = Number(drawId);
+        return this.prisma.$transaction(async (transaction) => {
+            const drawRows = await transaction.$queryRaw`
+                SELECT id FROM tournament_draws WHERE id = ${id} FOR UPDATE
+            `;
+            if (!drawRows.length) {
+                throw new HttpError(404, 'Tournament draw not found.');
+            }
+
+            const draw = await transaction.tournamentDraw.findUnique({
+                where: { id },
+                include: {
+                    participants: {
+                        include: {
+                            registration: {
+                                include: { members: { select: { userId: true } } },
+                            },
+                        },
+                    },
+                    matches: {
+                        orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }],
+                        include: { slots: { orderBy: { slotNumber: 'asc' } } },
+                    },
+                },
+            });
+            if (draw.status !== 'PUBLISHED') {
+                throw new HttpError(409, 'Only published draws can be finalized.');
+            }
+            if (draw.finalizedAt) {
+                throw new HttpError(409, 'Tournament results have already been finalized.');
+            }
+            if (draw.matches.some(({ status }) => status === 'PENDING')) {
+                throw new HttpError(409, 'Every playable match must be completed before finalizing results.');
+            }
+
+            const finalMatch = draw.matches.reduce((latest, match) => (
+                !latest || match.roundNumber > latest.roundNumber ? match : latest
+            ), null);
+            if (!finalMatch?.winnerParticipantId) {
+                throw new HttpError(409, 'The final bracket position has no determined winner.');
+            }
+            const bracketSize = draw.configurationSnapshot.bracketSize;
+            if (!Number.isInteger(bracketSize) || bracketSize < 2) {
+                throw new HttpError(409, 'This draw has no valid bracket size and cannot be finalized.');
+            }
+
+            const placements = new Map([[finalMatch.winnerParticipantId, 1]]);
+            let runnerUpParticipantId = finalMatch.status === 'COMPLETED'
+                ? finalMatch.slots.find(
+                    ({ participantId }) => participantId !== null
+                        && participantId !== finalMatch.winnerParticipantId,
+                )?.participantId ?? null
+                : null;
+            if (finalMatch.status === 'BYE') {
+                const lastDefeatedMatch = draw.matches
+                    .filter((match) => (
+                        match.status === 'COMPLETED'
+                        && match.winnerParticipantId === finalMatch.winnerParticipantId
+                    ))
+                    .sort((left, right) => right.roundNumber - left.roundNumber)[0];
+                runnerUpParticipantId = lastDefeatedMatch?.slots.find(
+                    ({ participantId }) => participantId !== null
+                        && participantId !== finalMatch.winnerParticipantId,
+                )?.participantId ?? null;
+            }
+            if (runnerUpParticipantId !== null) {
+                placements.set(runnerUpParticipantId, 2);
+            }
+            for (const match of draw.matches) {
+                if (match.status !== 'COMPLETED' || !match.winnerParticipantId) continue;
+                const loser = match.slots.find(
+                    ({ participantId }) => participantId !== null && participantId !== match.winnerParticipantId,
+                );
+                if (!loser) continue;
+                if (loser.participantId === runnerUpParticipantId) continue;
+                const position = Math.floor(bracketSize / (2 ** match.roundNumber)) + 1;
+                placements.set(loser.participantId, position);
+            }
+
+            const participantById = new Map(draw.participants.map((participant) => [
+                participant.id,
+                participant,
+            ]));
+            const pointTiers = draw.configurationSnapshot.pointTiers ?? [];
+            const awardRows = [];
+            const awardedUserIds = new Set();
+            for (const [participantId, position] of placements) {
+                const participant = participantById.get(participantId);
+                const pointTier = pointTiers.find((tier) => tier.position === position);
+                if (!participant || !pointTier) continue;
+                for (const member of participant.registration.members) {
+                    if (awardedUserIds.has(member.userId)) {
+                        throw new HttpError(409, 'A player cannot receive multiple awards in the same tournament category.');
+                    }
+                    awardedUserIds.add(member.userId);
+                    awardRows.push({
+                        tournamentCategoryId: draw.tournamentCategoryId,
+                        drawId: draw.id,
+                        registrationId: participant.registrationId,
+                        userId: member.userId,
+                        position,
+                        label: pointTier.label,
+                        points: pointTier.points,
+                    });
+                }
+            }
+
+            if (awardRows.length) {
+                const userIds = [...new Set(awardRows.map(({ userId }) => userId))];
+                const priorAwards = await transaction.tournamentRankingPointAward.findMany({
+                    where: {
+                        tournamentCategoryId: draw.tournamentCategoryId,
+                        userId: { in: userIds },
+                    },
+                    select: { userId: true },
+                });
+                if (priorAwards.length) {
+                    throw new HttpError(409, 'One or more players already received ranking points for this category.');
+                }
+                try {
+                    await transaction.tournamentRankingPointAward.createMany({ data: awardRows });
+                } catch (error) {
+                    if (error.code === 'P2002') {
+                        throw new HttpError(409, 'One or more players already received ranking points for this category.');
+                    }
+                    throw error;
+                }
+            }
+
+            await transaction.tournamentDraw.update({
+                where: { id },
+                data: { finalizedAt: new Date() },
+            });
+            const rankingPointAwards = await transaction.tournamentRankingPointAward.findMany({
+                where: { drawId: id },
+                orderBy: [{ position: 'asc' }, { userId: 'asc' }],
+                include: { user: { select: { id: true, name: true } } },
+            });
+
+            return {
+                draw: TournamentDraw.fromRecord(await this.getDrawRecord(transaction, id)),
+                rankingPointAwards,
+            };
+        }, { isolationLevel: 'Serializable' });
     }
 
     getDrawRecord(database, drawId) {

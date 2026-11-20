@@ -16,7 +16,13 @@ fields are `bannerUrl`, `description`, `rankingPointsPool`, `venues`, `rules`,
 and `categories`. Set `entryFee` on each category (it defaults to `0`), allowing
 singles and doubles events to have different prices. A category also accepts
 `pairingType` (`singles`, `doubles`, or `mixed_doubles`), `entryStatus` (`open`,
-`closing_soon`, or `closed`), and optional `pointTiers`.
+`closing_soon`, or `closed`), scoring rules, and optional `pointTiers`.
+Scoring defaults to best of three games, first to 21, a two-point winning
+margin, and a 30-point cap. Set `pointsToWin` to `15` and `maxPoints` to `21`
+for the configurable 15-point format. `pointTiers` configures the ranking
+points awarded for final placements; placements without a tier receive no
+points. Administrators supply the points; the backend does not hardcode
+placement awards.
 The shared category catalog is returned by `GET /api/auth/categories`; use its
 `categoryCode`, `name`, and `pairingType` as `categoryCode`, `categoryName`,
 and `pairingType`. Tournament categories store tournament-specific settings
@@ -34,6 +40,13 @@ register; categories without an age group remain unrestricted. For example:
   "pairingType": "singles",
   "entryFee": 2500,
   "matchFormat": "Best of 3 games",
+  "pointsToWin": 21,
+  "winningMargin": 2,
+  "maxPoints": 30,
+  "gamesToWin": 2,
+  "pointTiers": [
+    { "position": 1, "label": "Champion", "points": 300 }
+  ],
   "ageGroup": {
     "name": "U12",
     "age": 12
@@ -44,9 +57,10 @@ register; categories without an age group remain unrestricted. For example:
 A player must have a birthday on their profile and be no older than the
 group's maximum age when they register or accept a doubles invitation.
 
-For the first manual single-elimination draw workflow, including confirmed
-entrant selection, bracket position assignment, and publishing, see
-[Tournament draws](../draws/README.md). Match result entry is not implemented.
+For the manual single-elimination draw workflow, including confirmed entrant
+selection, position assignment, and publishing, see
+[Tournament draws](../draws/README.md). Round robin and group knockout are
+deferred.
 
 Create or update a tournament with its banner in the same request by sending
 `multipart/form-data` to `POST /api/tournaments` or `PUT
