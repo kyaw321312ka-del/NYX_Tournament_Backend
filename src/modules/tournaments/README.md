@@ -44,6 +44,10 @@ register; categories without an age group remain unrestricted. For example:
 A player must have a birthday on their profile and be no older than the
 group's maximum age when they register or accept a doubles invitation.
 
+For the first manual single-elimination draw workflow, including confirmed
+entrant selection, bracket position assignment, and publishing, see
+[Tournament draws](../draws/README.md). Match result entry is not implemented.
+
 Create or update a tournament with its banner in the same request by sending
 `multipart/form-data` to `POST /api/tournaments` or `PUT
 /api/tournaments/:id`. Include a `tournament` text field containing the JSON

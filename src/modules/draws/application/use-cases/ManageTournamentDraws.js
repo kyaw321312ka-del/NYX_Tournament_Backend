@@ -1,0 +1,35 @@
+class ManageTournamentDraws {
+    constructor({ drawRepository }) {
+        this.drawRepository = drawRepository;
+    }
+
+    listEligibleRegistrations(categoryId) {
+        return this.drawRepository.listEligibleRegistrations(categoryId);
+    }
+
+    createDraft(categoryId, configuration) {
+        return this.drawRepository.createDraft(categoryId, configuration);
+    }
+
+    getLatestDraw(categoryId) {
+        return this.drawRepository.getLatestDraw(categoryId);
+    }
+
+    getDraw(categoryId, drawId) {
+        return this.drawRepository.getDraw(categoryId, drawId);
+    }
+
+    getPublishedDraw(categoryId) {
+        return this.drawRepository.getPublishedDraw(categoryId);
+    }
+
+    assignPositions(drawId, assignments) {
+        return this.drawRepository.assignPositions(drawId, assignments);
+    }
+
+    publish(drawId) {
+        return this.drawRepository.publish(drawId);
+    }
+}
+
+module.exports = ManageTournamentDraws;

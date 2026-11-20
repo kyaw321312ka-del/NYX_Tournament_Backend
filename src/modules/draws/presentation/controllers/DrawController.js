@@ -1,0 +1,83 @@
+function createDrawController({ manageTournamentDraws }) {
+    return {
+        async listEligibleRegistrations(req, res, next) {
+            try {
+                const registrations = await manageTournamentDraws.listEligibleRegistrations(
+                    req.validatedParams.categoryId,
+                );
+                return res.status(200).json({ success: true, data: registrations });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async createDraft(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.createDraft(
+                    req.validatedParams.categoryId,
+                    req.validatedBody,
+                );
+                return res.status(201).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async getLatestDraw(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.getLatestDraw(
+                    req.validatedParams.categoryId,
+                );
+                return res.status(200).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async getDraw(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.getDraw(
+                    req.validatedParams.categoryId,
+                    req.validatedParams.drawId,
+                );
+                return res.status(200).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async getPublishedDraw(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.getPublishedDraw(
+                    req.validatedParams.categoryId,
+                );
+                return res.status(200).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async assignPositions(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.assignPositions(
+                    req.validatedParams.drawId,
+                    req.validatedBody.assignments,
+                );
+                return res.status(200).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+
+        async publish(req, res, next) {
+            try {
+                const draw = await manageTournamentDraws.publish(req.validatedParams.drawId);
+                return res.status(200).json({ success: true, data: draw.toJSON() });
+            } catch (error) {
+                return next(error);
+            }
+        },
+    };
+}
+
+module.exports = createDrawController;

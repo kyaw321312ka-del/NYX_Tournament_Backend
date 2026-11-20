@@ -48,6 +48,13 @@ enum TournamentDrawStatus {
   ARCHIVED
 }
 
+enum TournamentDrawMatchStatus {
+  PENDING
+  BYE
+  EMPTY
+  COMPLETED
+}
+
 model PaymentMethod {
   id                Int      @id @default(autoincrement())
   paymentMethodName String   @map("payment_method_name") @db.VarChar(100)
@@ -413,6 +420,8 @@ model TournamentDraw {
 
   tournamentCategory TournamentCategory          @relation(fields: [tournamentCategoryId], references: [id], onDelete: Cascade)
   participants       TournamentDrawParticipant[]
+  matches            TournamentDrawMatch[]
+  matchSlots         TournamentDrawMatchSlot[]
 
   @@unique([tournamentCategoryId, version], map: "td_category_version_uq")
   @@unique([id, tournamentCategoryId], map: "td_id_category_uq")
@@ -430,14 +439,60 @@ model TournamentDrawParticipant {
   groupNumber          Int?     @map("group_number")
   createdAt            DateTime @default(now()) @map("created_at")
 
-  draw         TournamentDraw         @relation(fields: [drawId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Cascade)
-  registration TournamentRegistration @relation(fields: [registrationId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Restrict)
+  draw         TournamentDraw            @relation(fields: [drawId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Cascade)
+  registration TournamentRegistration    @relation(fields: [registrationId, tournamentCategoryId], references: [id, tournamentCategoryId], onDelete: Restrict)
+  matchSlots   TournamentDrawMatchSlot[]
+  wonMatches   TournamentDrawMatch[]     @relation("DrawMatchWinner")
 
   @@unique([drawId, registrationId], map: "tdp_draw_registration_uq")
   @@unique([drawId, bracketPosition], map: "tdp_draw_position_uq")
   @@index([drawId, tournamentCategoryId], map: "tdp_draw_category_idx")
   @@index([registrationId, tournamentCategoryId], map: "tdp_registration_category_idx")
   @@map("tournament_draw_participants")
+}
+
+model TournamentDrawMatch {
+  id                  Int                       @id @default(autoincrement())
+  drawId              Int                       @map("draw_id")
+  roundNumber         Int                       @map("round_number")
+  matchNumber         Int                       @map("match_number")
+  status              TournamentDrawMatchStatus @default(PENDING)
+  winnerParticipantId Int?                      @map("winner_participant_id")
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+
+  draw              TournamentDraw             @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  slots             TournamentDrawMatchSlot[]  @relation("DrawMatchSlots")
+  winnerParticipant TournamentDrawParticipant? @relation("DrawMatchWinner", fields: [winnerParticipantId], references: [id], onDelete: SetNull)
+  sourceForSlots    TournamentDrawMatchSlot[]  @relation("DrawSlotSourceMatch")
+
+  @@unique([drawId, roundNumber, matchNumber], map: "tdm_draw_round_match_uq")
+  @@unique([id, drawId], map: "tdm_id_draw_uq")
+  @@index([drawId, status], map: "tdm_draw_status_idx")
+  @@map("tournament_draw_matches")
+}
+
+model TournamentDrawMatchSlot {
+  id              Int      @id @default(autoincrement())
+  drawId          Int      @map("draw_id")
+  matchId         Int      @map("match_id")
+  slotNumber      Int      @map("slot_number")
+  bracketPosition Int?     @map("bracket_position")
+  participantId   Int?     @map("participant_id")
+  sourceMatchId   Int?     @map("source_match_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  draw        TournamentDraw             @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  match       TournamentDrawMatch        @relation("DrawMatchSlots", fields: [matchId, drawId], references: [id, drawId], onDelete: Cascade)
+  participant TournamentDrawParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  sourceMatch TournamentDrawMatch?       @relation("DrawSlotSourceMatch", fields: [sourceMatchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, slotNumber], map: "tdms_match_slot_uq")
+  @@unique([drawId, bracketPosition], map: "tdms_draw_position_uq")
+  @@unique([sourceMatchId], map: "tdms_source_match_uq")
+  @@index([sourceMatchId], map: "tdms_source_match_idx")
+  @@map("tournament_draw_match_slots")
 }
 
 // ==========================================
