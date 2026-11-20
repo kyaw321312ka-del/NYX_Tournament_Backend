@@ -37,7 +37,7 @@ ALTER TABLE `tournament_ranking_point_awards`
         ON DELETE RESTRICT ON UPDATE CASCADE,
     ADD CONSTRAINT `trpa_registration_category_fkey`
         FOREIGN KEY (`registration_id`, `tournament_category_id`)
-        REFERENCES `tournament_registrations` (`id`, `tournament_category_id`)
+        REFERENCES `tournament_registrations` (`id`, `tournamentCategoryId`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
     ADD CONSTRAINT `trpa_user_fkey`
         FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
