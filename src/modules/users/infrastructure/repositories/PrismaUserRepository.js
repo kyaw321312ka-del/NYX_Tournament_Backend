@@ -208,6 +208,53 @@ class PrismaUserRepository {
         });
     }
 
+    async reviewIdentityDocuments(userId, verificationStatus) {
+        const id = Number(userId);
+        return this.prisma.$transaction(async (transaction) => {
+            const existing = await transaction.userIdentityDocuments.findUnique({
+                where: { userId: id },
+                select: {
+                    frontImageUrl: true,
+                    backImageUrl: true,
+                },
+            });
+            if (!existing) {
+                throw new HttpError(404, 'Identity documents not found for this user.');
+            }
+            if (
+                verificationStatus === 'approved'
+                && (!existing.frontImageUrl || !existing.backImageUrl)
+            ) {
+                throw new HttpError(409, 'Both identity document images are required for approval.');
+            }
+
+            const documents = await transaction.userIdentityDocuments.update({
+                where: { userId: id },
+                data: { verificationStatus },
+                select: {
+                    userId: true,
+                    frontImageUrl: true,
+                    backImageUrl: true,
+                    verificationStatus: true,
+                    user: {
+                        select: {
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+            return {
+                userId: documents.userId,
+                name: documents.user.name,
+                email: documents.user.email,
+                frontUploaded: Boolean(documents.frontImageUrl),
+                backUploaded: Boolean(documents.backImageUrl),
+                verificationStatus: documents.verificationStatus,
+            };
+        });
+    }
+
     async updateProfileImage(userId, profileImageUrl) {
         return this.prisma.$transaction(async (transaction) => {
             const existing = await transaction.user.findUnique({

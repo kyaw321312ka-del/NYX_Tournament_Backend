@@ -52,4 +52,17 @@ const verifyEmailChangeSchema = z.object({
     otp: z.string().regex(/^\d{6}$/, 'Verification code must contain exactly 6 digits.'),
 }).strict();
 
-module.exports = { updateProfileSchema, verifyEmailChangeSchema };
+const userIdSchema = z.object({
+    userId: z.coerce.number().int().positive(),
+});
+
+const reviewIdentityDocumentsSchema = z.object({
+    verificationStatus: z.enum(['approved', 'rejected']),
+}).strict();
+
+module.exports = {
+    updateProfileSchema,
+    verifyEmailChangeSchema,
+    userIdSchema,
+    reviewIdentityDocumentsSchema,
+};

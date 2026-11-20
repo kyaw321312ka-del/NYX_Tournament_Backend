@@ -42,6 +42,8 @@ function createUserRouter({
     updateIdentityDocuments,
     updateUserProfile,
     verifyEmailChange,
+    reviewIdentityDocuments,
+    requireAdmin,
 }) {
     const router = express.Router();
     const handleProfileImage = (req, res, next) => {
@@ -137,6 +139,14 @@ function createUserRouter({
         authenticate,
         handleIdentityDocuments,
         UserController.createUpdateIdentityDocumentsController(updateIdentityDocuments),
+    );
+    router.patch(
+        '/:userId/identity-documents/status',
+        authenticate,
+        requireAdmin,
+        validateRequest(userSchemas.userIdSchema, 'params'),
+        validateRequest(userSchemas.reviewIdentityDocumentsSchema),
+        UserController.createReviewIdentityDocumentsController(reviewIdentityDocuments),
     );
     router.get('/', UserController.listUsers);
     router.get('/:id', UserController.getUser);

@@ -124,6 +124,64 @@ test('updates the profile image and returns the previous URL for cleanup', async
     });
 });
 
+test('reviews identity documents and requires both sides before approval', async () => {
+    const calls = [];
+    const prisma = {
+        $transaction: async (callback) => callback({
+            userIdentityDocuments: {
+                findUnique: async (args) => {
+                    calls.push(['findUnique', args]);
+                    return { frontImageUrl: 'front.jpg', backImageUrl: 'back.jpg' };
+                },
+                update: async (args) => {
+                    calls.push(['update', args]);
+                    return {
+                        userId: 7,
+                        frontImageUrl: 'front.jpg',
+                        backImageUrl: 'back.jpg',
+                        verificationStatus: 'approved',
+                        user: { name: 'Test Player', email: 'player@example.com' },
+                    };
+                },
+            },
+        }),
+    };
+    const repository = new PrismaUserRepository(prisma);
+
+    const result = await repository.reviewIdentityDocuments(7, 'approved');
+
+    assert.deepEqual(result, {
+        userId: 7,
+        name: 'Test Player',
+        email: 'player@example.com',
+        frontUploaded: true,
+        backUploaded: true,
+        verificationStatus: 'approved',
+    });
+    assert.deepEqual(calls[1][1].data, { verificationStatus: 'approved' });
+});
+
+test('does not approve identity documents when either side is missing', async () => {
+    let updated = false;
+    const prisma = {
+        $transaction: async (callback) => callback({
+            userIdentityDocuments: {
+                findUnique: async () => ({ frontImageUrl: 'front.jpg', backImageUrl: null }),
+                update: async () => {
+                    updated = true;
+                },
+            },
+        }),
+    };
+    const repository = new PrismaUserRepository(prisma);
+
+    await assert.rejects(
+        repository.reviewIdentityDocuments(7, 'approved'),
+        (error) => error.statusCode === 409,
+    );
+    assert.equal(updated, false);
+});
+
 test('returns not found when the authenticated user does not exist', async () => {
     const prisma = {
         $transaction: async (callback) => callback({

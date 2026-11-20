@@ -87,6 +87,20 @@ function createVerifyEmailChangeController(verifyEmailChange) {
     };
 }
 
+function createReviewIdentityDocumentsController(reviewIdentityDocuments) {
+    return async function reviewIdentityDocumentsRequest(req, res, next) {
+        try {
+            const result = await reviewIdentityDocuments.execute(
+                req.validatedParams.userId,
+                req.validatedBody.verificationStatus,
+            );
+            return res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
 module.exports = {
     listUsers,
     getUser,
@@ -94,4 +108,5 @@ module.exports = {
     createUpdateIdentityDocumentsController,
     createUpdateProfileController,
     createVerifyEmailChangeController,
+    createReviewIdentityDocumentsController,
 };

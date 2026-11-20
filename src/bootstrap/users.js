@@ -5,10 +5,12 @@ const UpdatePlayerProfileImage = require('../modules/users/application/use-cases
 const UpdateIdentityDocuments = require('../modules/users/application/use-cases/UpdateIdentityDocuments');
 const UpdateUserProfile = require('../modules/users/application/use-cases/UpdateUserProfile');
 const VerifyEmailChange = require('../modules/users/application/use-cases/VerifyEmailChange');
+const ReviewIdentityDocuments = require('../modules/users/application/use-cases/ReviewIdentityDocuments');
 const OtpService = require('../modules/auth/domain/services/OtpService');
 const EmailOtpSender = require('../modules/auth/infrastructure/services/EmailOtpSender');
 const PasswordHasher = require('../modules/auth/infrastructure/services/PasswordHasher');
 const createUserRouter = require('../modules/users/presentation/routes/userRoutes');
+const createRequireAdmin = require('../shared/middleware/requireAdmin');
 
 function createUserModule({ prisma, authenticate }) {
     const userRepository = new PrismaUserRepository(prisma);
@@ -34,6 +36,7 @@ function createUserModule({ prisma, authenticate }) {
         userRepository,
         otpService: new OtpService(),
     });
+    const reviewIdentityDocuments = new ReviewIdentityDocuments({ userRepository });
 
     return createUserRouter({
         authenticate,
@@ -41,6 +44,8 @@ function createUserModule({ prisma, authenticate }) {
         updateIdentityDocuments,
         updateUserProfile,
         verifyEmailChange,
+        reviewIdentityDocuments,
+        requireAdmin: createRequireAdmin(prisma),
     });
 }
 

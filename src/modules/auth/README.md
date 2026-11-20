@@ -25,6 +25,12 @@ with JSON body `{"clubName":"Yangon Badminton Club","address":"Yangon"}`.
 Use `null` to clear either field. The profile response includes `clubName` and
 `address`.
 
+An administrator can review uploaded identity documents with
+`PATCH /api/users/:userId/identity-documents/status`, using an admin bearer
+token and a JSON body such as `{"verificationStatus":"approved"}` or
+`{"verificationStatus":"rejected"}`. Approval requires both document images.
+Uploading or replacing identity documents resets their status to `pending`.
+
 Registration uses `multipart/form-data` with text fields `name`, `email`,
 `password`, `gender`, `birthday`, one or more `categoryIds`, and optional
 `phno`, `address`, and `clubName`, plus required file fields `frontIdImg` and
