@@ -27,3 +27,18 @@ test('login endpoint supports both auth prefixes and allows the production front
         );
     }
 });
+
+test('admin player-list route is mounted under the API prefix', async (t) => {
+    const server = app.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    t.after(() => new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+    }));
+
+    const response = await fetch(
+        `http://127.0.0.1:${server.address().port}/api/admin/users?page=1&pageSize=20`,
+    );
+
+    assert.equal(response.status, 401);
+    assert.notEqual((await response.json()).message, 'Route not found.');
+});
