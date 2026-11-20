@@ -15,6 +15,8 @@ const errorHandler = require('./shared/middleware/errorHandler');
 const notFound = require('./shared/middleware/notFound');
 
 const app = express();
+// Passenger forwards requests through one trusted proxy.
+app.set('trust proxy', 1);
 const authModule = createAuthModule({ prisma });
 const tournamentRoutes = createTournamentModule({
     prisma,

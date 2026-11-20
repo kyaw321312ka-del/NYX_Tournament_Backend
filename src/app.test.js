@@ -42,3 +42,26 @@ test('admin player-list route is mounted under the API prefix', async (t) => {
     assert.equal(response.status, 401);
     assert.notEqual((await response.json()).message, 'Route not found.');
 });
+
+test('auth rate limits use the client IP forwarded by the immediate proxy', async (t) => {
+    const server = app.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    t.after(() => new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+    }));
+
+    const login = (ip) => fetch(`http://127.0.0.1:${server.address().port}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': ip,
+        },
+        body: '{}',
+    });
+
+    for (let request = 0; request < 10; request += 1) {
+        assert.equal((await login('198.51.100.10')).status, 400);
+    }
+    assert.equal((await login('198.51.100.10')).status, 429);
+    assert.equal((await login('198.51.100.11')).status, 400);
+});
