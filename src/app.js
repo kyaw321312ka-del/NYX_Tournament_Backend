@@ -32,7 +32,7 @@ const paymentRoutes = createPaymentModule({
     prisma,
     authenticate: authModule.authenticate,
 });
-const userRoutes = createUserModule({
+const userModule = createUserModule({
     prisma,
     authenticate: authModule.authenticate,
 });
@@ -65,7 +65,8 @@ app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api', paymentMethodRoutes);
 app.use('/api', paymentRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/users', userModule.userRoutes);
+app.use('/api', userModule.adminUserRoutes);
 app.use('/api', drawRoutes);
 
 app.get('/', (req, res) => {

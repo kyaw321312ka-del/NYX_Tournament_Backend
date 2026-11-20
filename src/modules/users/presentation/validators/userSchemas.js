@@ -60,9 +60,15 @@ const reviewIdentityDocumentsSchema = z.object({
     verificationStatus: z.enum(['approved', 'rejected']),
 }).strict();
 
+const listAdminPlayersSchema = z.object({
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+}).strict();
+
 module.exports = {
     updateProfileSchema,
     verifyEmailChangeSchema,
     userIdSchema,
     reviewIdentityDocumentsSchema,
+    listAdminPlayersSchema,
 };

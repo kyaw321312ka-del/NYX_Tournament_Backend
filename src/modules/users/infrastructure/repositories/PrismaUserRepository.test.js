@@ -66,6 +66,131 @@ test('updates profile categories and returns replaced image references', async (
     });
 });
 
+test('lists player rows with cumulative points and identity-review status', async () => {
+    let userQuery;
+    let pointQuery;
+    const prisma = {
+        user: {
+            findMany: async (args) => {
+                userQuery = args;
+                return [
+                    {
+                        id: 8842,
+                        name: 'Min Thant',
+                        email: 'minthant@example.com',
+                        phno: '09250123789',
+                        profile: { clubName: 'Yangon Badminton Club' },
+                        identityDocuments: { verificationStatus: 'approved' },
+                    },
+                    {
+                        id: 8843,
+                        name: 'Aung Myo',
+                        email: 'aungmyo@example.com',
+                        phno: '09252998877',
+                        profile: { clubName: 'Mandalay Heroes Club' },
+                        identityDocuments: { verificationStatus: 'pending' },
+                    },
+                ];
+            },
+            count: async () => 2,
+        },
+        tournamentRankingPointAward: {
+            groupBy: async (args) => {
+                pointQuery = args;
+                return [{ userId: 8843, _sum: { points: 3650 } }];
+            },
+        },
+    };
+    const repository = new PrismaUserRepository(prisma);
+
+    const result = await repository.listPlayers({ page: 1, pageSize: 20 });
+
+    assert.equal(userQuery.skip, 0);
+    assert.equal(userQuery.take, 20);
+    assert.deepEqual(pointQuery.where.userId.in, [8842, 8843]);
+    assert.deepEqual(result.items, [
+        {
+            id: 8842,
+            playerId: '#NYX-8842',
+            athleteName: 'Min Thant',
+            teamClub: 'Yangon Badminton Club',
+            contactEmail: 'minthant@example.com',
+            phoneNumber: '09250123789',
+            points: 0,
+            status: 'Active',
+        },
+        {
+            id: 8843,
+            playerId: '#NYX-8843',
+            athleteName: 'Aung Myo',
+            teamClub: 'Mandalay Heroes Club',
+            contactEmail: 'aungmyo@example.com',
+            phoneNumber: '09252998877',
+            points: 3650,
+            status: 'Pending',
+        },
+    ]);
+    assert.deepEqual(result.pagination, { page: 1, pageSize: 20, total: 2, pageCount: 1 });
+});
+
+test('returns admin player details without exposing private identity-document filenames', async () => {
+    const prisma = {
+        user: {
+            findFirst: async () => ({
+                id: 8843,
+                name: 'Aung Myo',
+                email: 'aungmyo@example.com',
+                phno: '09252998877',
+                emailVerifiedAt: new Date('2026-11-19T07:34:00.000Z'),
+                createdAt: new Date('2026-11-19T07:34:00.000Z'),
+                updatedAt: new Date('2026-11-19T07:34:00.000Z'),
+                profile: {
+                    clubName: 'Mandalay Heroes Club',
+                    address: 'Mandalay',
+                    gender: 'male',
+                    birthday: new Date('1998-04-15T00:00:00.000Z'),
+                    profileImageUrl: '/uploads/player-profiles/player.png',
+                },
+                categories: [{
+                    category: {
+                        id: 1,
+                        categoryCode: 'MS',
+                        name: "Men's Singles",
+                        pairingType: 'singles',
+                    },
+                }],
+                identityDocuments: {
+                    frontImageUrl: 'private-front.jpg',
+                    backImageUrl: 'private-back.jpg',
+                    verificationStatus: 'approved',
+                },
+            }),
+        },
+        tournamentRankingPointAward: {
+            findMany: async () => [{
+                position: 1,
+                label: 'Champion',
+                points: 3650,
+                awardedAt: new Date('2026-11-19T07:34:00.000Z'),
+                tournamentCategory: {
+                    tournament: { title: 'NYX Open' },
+                    eventCategory: { categoryCode: 'MS', name: "Men's Singles" },
+                },
+            }],
+        },
+    };
+    const repository = new PrismaUserRepository(prisma);
+
+    const result = await repository.getPlayerDetails(8843);
+
+    assert.equal(result.playerId, '#NYX-8843');
+    assert.equal(result.birthday, '1998-04-15');
+    assert.equal(result.identityDocuments.verificationStatus, 'approved');
+    assert.equal(result.points, 3650);
+    assert.equal(result.rankingPointAwards[0].tournamentTitle, 'NYX Open');
+    assert.equal('frontImageUrl' in result.identityDocuments, false);
+});
+
 test('rejects invalid profile categories without updating the user', async () => {
     const prisma = {
         $transaction: async (callback) => callback({

@@ -101,6 +101,32 @@ function createReviewIdentityDocumentsController(reviewIdentityDocuments) {
     };
 }
 
+function createListAdminPlayersController(listAdminPlayers) {
+    return async function listAdminPlayersRequest(req, res, next) {
+        try {
+            const result = await listAdminPlayers.execute(req.validatedQuery);
+            return res.status(200).json({
+                success: true,
+                data: result.items,
+                pagination: result.pagination,
+            });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
+function createGetAdminPlayerDetailsController(getAdminPlayerDetails) {
+    return async function getAdminPlayerDetailsRequest(req, res, next) {
+        try {
+            const result = await getAdminPlayerDetails.execute(req.validatedParams.userId);
+            return res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            return next(error);
+        }
+    };
+}
+
 module.exports = {
     listUsers,
     getUser,
@@ -109,4 +135,6 @@ module.exports = {
     createUpdateProfileController,
     createVerifyEmailChangeController,
     createReviewIdentityDocumentsController,
+    createListAdminPlayersController,
+    createGetAdminPlayerDetailsController,
 };

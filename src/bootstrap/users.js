@@ -6,10 +6,13 @@ const UpdateIdentityDocuments = require('../modules/users/application/use-cases/
 const UpdateUserProfile = require('../modules/users/application/use-cases/UpdateUserProfile');
 const VerifyEmailChange = require('../modules/users/application/use-cases/VerifyEmailChange');
 const ReviewIdentityDocuments = require('../modules/users/application/use-cases/ReviewIdentityDocuments');
+const ListAdminPlayers = require('../modules/users/application/use-cases/ListAdminPlayers');
+const GetAdminPlayerDetails = require('../modules/users/application/use-cases/GetAdminPlayerDetails');
 const OtpService = require('../modules/auth/domain/services/OtpService');
 const EmailOtpSender = require('../modules/auth/infrastructure/services/EmailOtpSender');
 const PasswordHasher = require('../modules/auth/infrastructure/services/PasswordHasher');
 const createUserRouter = require('../modules/users/presentation/routes/userRoutes');
+const createAdminUserRouter = require('../modules/users/presentation/routes/adminUserRoutes');
 const createRequireAdmin = require('../shared/middleware/requireAdmin');
 
 function createUserModule({ prisma, authenticate }) {
@@ -37,16 +40,27 @@ function createUserModule({ prisma, authenticate }) {
         otpService: new OtpService(),
     });
     const reviewIdentityDocuments = new ReviewIdentityDocuments({ userRepository });
+    const listAdminPlayers = new ListAdminPlayers({ userRepository });
+    const getAdminPlayerDetails = new GetAdminPlayerDetails({ userRepository });
 
-    return createUserRouter({
-        authenticate,
-        updatePlayerProfileImage,
-        updateIdentityDocuments,
-        updateUserProfile,
-        verifyEmailChange,
-        reviewIdentityDocuments,
-        requireAdmin: createRequireAdmin(prisma),
-    });
+    const requireAdmin = createRequireAdmin(prisma);
+    return {
+        userRoutes: createUserRouter({
+            authenticate,
+            updatePlayerProfileImage,
+            updateIdentityDocuments,
+            updateUserProfile,
+            verifyEmailChange,
+            reviewIdentityDocuments,
+            requireAdmin,
+        }),
+        adminUserRoutes: createAdminUserRouter({
+            authenticate,
+            requireAdmin,
+            listAdminPlayers,
+            getAdminPlayerDetails,
+        }),
+    };
 }
 
 module.exports = createUserModule;

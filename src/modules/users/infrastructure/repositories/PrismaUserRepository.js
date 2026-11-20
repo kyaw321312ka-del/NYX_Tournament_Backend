@@ -5,6 +5,170 @@ class PrismaUserRepository {
         this.prisma = prisma;
     }
 
+    async listPlayers({ page, pageSize }) {
+        const where = { role: { is: { name: 'user' } } };
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where,
+                orderBy: { id: 'asc' },
+                skip: (page - 1) * pageSize,
+                take: pageSize,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phno: true,
+                    profile: { select: { clubName: true } },
+                    identityDocuments: { select: { verificationStatus: true } },
+                },
+            }),
+            this.prisma.user.count({ where }),
+        ]);
+        const userIds = users.map(({ id }) => id);
+        const pointTotals = userIds.length
+            ? await this.prisma.tournamentRankingPointAward.groupBy({
+                by: ['userId'],
+                where: { userId: { in: userIds } },
+                _sum: { points: true },
+            })
+            : [];
+        const pointsByUserId = new Map(
+            pointTotals.map(({ userId, _sum }) => [userId, _sum.points ?? 0]),
+        );
+
+        return {
+            items: users.map((user) => {
+                const verificationStatus = user.identityDocuments?.verificationStatus ?? 'pending';
+                return {
+                    id: user.id,
+                    playerId: `#NYX-${user.id}`,
+                    athleteName: user.name,
+                    teamClub: user.profile?.clubName ?? null,
+                    contactEmail: user.email,
+                    phoneNumber: user.phno,
+                    points: pointsByUserId.get(user.id) ?? 0,
+                    status: verificationStatus === 'approved'
+                        ? 'Active'
+                        : verificationStatus === 'rejected' ? 'Rejected' : 'Pending',
+                };
+            }),
+            pagination: {
+                page,
+                pageSize,
+                total,
+                pageCount: Math.ceil(total / pageSize),
+            },
+        };
+    }
+
+    async getPlayerDetails(userId) {
+        const id = Number(userId);
+        const user = await this.prisma.user.findFirst({
+            where: {
+                id,
+                role: { is: { name: 'user' } },
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phno: true,
+                emailVerifiedAt: true,
+                createdAt: true,
+                updatedAt: true,
+                profile: {
+                    select: {
+                        clubName: true,
+                        address: true,
+                        gender: true,
+                        birthday: true,
+                        profileImageUrl: true,
+                    },
+                },
+                categories: {
+                    select: {
+                        category: {
+                            select: {
+                                id: true,
+                                categoryCode: true,
+                                name: true,
+                                pairingType: true,
+                            },
+                        },
+                    },
+                },
+                identityDocuments: {
+                    select: {
+                        frontImageUrl: true,
+                        backImageUrl: true,
+                        verificationStatus: true,
+                    },
+                },
+            },
+        });
+        if (!user) {
+            throw new HttpError(404, 'Player not found.');
+        }
+
+        const rankingPointAwards = await this.prisma.tournamentRankingPointAward.findMany({
+            where: { userId: id },
+            orderBy: { awardedAt: 'desc' },
+            select: {
+                position: true,
+                label: true,
+                points: true,
+                awardedAt: true,
+                tournamentCategory: {
+                    select: {
+                        tournament: { select: { title: true } },
+                        eventCategory: {
+                            select: {
+                                categoryCode: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        const identityDocuments = user.identityDocuments;
+        const points = rankingPointAwards.reduce((total, award) => total + award.points, 0);
+
+        return {
+            id: user.id,
+            playerId: `#NYX-${user.id}`,
+            name: user.name,
+            clubName: user.profile?.clubName ?? null,
+            address: user.profile?.address ?? null,
+            gender: user.profile?.gender ?? null,
+            birthday: user.profile?.birthday instanceof Date
+                ? user.profile.birthday.toISOString().slice(0, 10)
+                : user.profile?.birthday ?? null,
+            email: user.email,
+            phno: user.phno,
+            profileImageUrl: user.profile?.profileImageUrl ?? null,
+            emailVerifiedAt: user.emailVerifiedAt,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            categories: user.categories.map(({ category }) => category),
+            identityDocuments: {
+                frontUploaded: Boolean(identityDocuments?.frontImageUrl),
+                backUploaded: Boolean(identityDocuments?.backImageUrl),
+                verificationStatus: identityDocuments?.verificationStatus ?? null,
+            },
+            points,
+            rankingPointAwards: rankingPointAwards.map((award) => ({
+                position: award.position,
+                label: award.label,
+                points: award.points,
+                awardedAt: award.awardedAt,
+                tournamentTitle: award.tournamentCategory.tournament.title,
+                categoryCode: award.tournamentCategory.eventCategory.categoryCode,
+                categoryName: award.tournamentCategory.eventCategory.name,
+            })),
+        };
+    }
+
     async findProfileForUpdate(userId) {
         return this.prisma.user.findUnique({
             where: { id: Number(userId) },

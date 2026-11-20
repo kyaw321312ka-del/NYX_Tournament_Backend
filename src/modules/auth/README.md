@@ -31,6 +31,16 @@ token and a JSON body such as `{"verificationStatus":"approved"}` or
 `{"verificationStatus":"rejected"}`. Approval requires both document images.
 Uploading or replacing identity documents resets their status to `pending`.
 
+List players for the admin table with `GET /api/admin/users?page=1&pageSize=20`.
+Each row includes `playerId` (`#NYX-` plus the user ID), `athleteName`,
+`teamClub`, `contactEmail`, `phoneNumber`, and cumulative ranking `points`.
+`status` is `Active` for identity-approved players, `Rejected` for rejected
+documents, and `Pending` otherwise. The “View Details” action is a frontend
+control; it can load a player's details with
+`GET /api/admin/users/:userId`, using the row's numeric `id`. The detail
+response includes profile and category data, identity-document upload and
+review status (not private document filenames), total points, and award history.
+
 Registration uses `multipart/form-data` with text fields `name`, `email`,
 `password`, `gender`, `birthday`, one or more `categoryIds`, and optional
 `phno`, `address`, and `clubName`, plus required file fields `frontIdImg` and
