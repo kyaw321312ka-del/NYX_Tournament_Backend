@@ -252,11 +252,16 @@ jobs:
           # --------------------------------------
           echo "Restarting application..."
 
-          mkdir -p tmp
-          touch tmp/restart.txt
+          if command -v passenger-config >/dev/null 2>&1; then
+            passenger-config restart-app "$APP_DIR"
+          else
+            echo "passenger-config is unavailable; using Passenger's restart marker."
+            mkdir -p tmp
+            touch tmp/restart.txt
+          fi
 
           echo "======================================"
-          echo "NYX backend deployment completed"
+          echo "Deployment commands completed; verifying the live route next."
           echo "======================================"
 
           REMOTE
