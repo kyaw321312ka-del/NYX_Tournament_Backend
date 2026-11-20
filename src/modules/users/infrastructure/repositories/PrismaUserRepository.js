@@ -130,7 +130,25 @@ class PrismaUserRepository {
                 include: {
                     role: true,
                     profile: true,
-                    categories: { include: { category: true } },
+                    identityDocuments: {
+                        select: {
+                            frontImageUrl: true,
+                            backImageUrl: true,
+                            verificationStatus: true,
+                        },
+                    },
+                    categories: {
+                        select: {
+                            category: {
+                                select: {
+                                    id: true,
+                                    categoryCode: true,
+                                    name: true,
+                                    pairingType: true,
+                                },
+                            },
+                        },
+                    },
                 },
             });
             return {

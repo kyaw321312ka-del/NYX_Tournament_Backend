@@ -86,12 +86,21 @@ test('updates profile fields without requiring a password confirmation', async (
         ['updateProfile', 7, {
             name: 'Updated Player',
             clubName: undefined,
+            address: undefined,
             gender: undefined,
             birthday: undefined,
             phno: null,
             passwordHash: undefined,
         }, undefined, undefined],
     ]);
+});
+
+test('updates address in the player profile and returns the account response', async () => {
+    const { useCase, calls } = createUseCase();
+
+    await useCase.execute(7, { address: 'Yangon, Myanmar' });
+
+    assert.equal(calls[0][2].address, 'Yangon, Myanmar');
 });
 
 test('updates the club name in the user profile', async () => {

@@ -28,10 +28,26 @@ class User {
     if (Array.isArray(this.categories)) {
       profile.categories = this.categories.map(({ category }) => ({
         id: category.id,
+        categoryCode: category.categoryCode,
         name: category.name,
+        pairingType: category.pairingType,
       }));
     }
     return profile;
+  }
+
+  toAccountProfile() {
+    const profile = this.toPublicProfile();
+    const documents = this.identityDocuments;
+    return {
+      ...profile,
+      updatedAt: this.updatedAt ?? null,
+      identityDocuments: {
+        frontUploaded: Boolean(documents?.frontImageUrl),
+        backUploaded: Boolean(documents?.backImageUrl),
+        verificationStatus: documents?.verificationStatus ?? null,
+      },
+    };
   }
 }
 

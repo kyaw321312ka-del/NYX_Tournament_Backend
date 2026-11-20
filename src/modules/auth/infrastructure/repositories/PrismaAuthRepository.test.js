@@ -2,6 +2,31 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const PrismaAuthRepository = require('./PrismaAuthRepository');
 
+test('loads complete self-account data without selecting password hashes', async () => {
+  let query;
+  const repository = new PrismaAuthRepository({
+    user: {
+      findUnique: async (args) => {
+        query = args;
+        return { id: 8 };
+      },
+    },
+  });
+
+  await repository.findUserById(8);
+
+  assert.equal(query.where.id, 8);
+  assert.equal(query.select.profile, true);
+  assert.equal(query.select.identityDocuments.select.verificationStatus, true);
+  assert.deepEqual(query.select.categories.select.category.select, {
+    id: true,
+    categoryCode: true,
+    name: true,
+    pairingType: true,
+  });
+  assert.equal('passwordHash' in query.select, false);
+});
+
 test('email verification transfers pending image references to the new user', async () => {
   const calls = [];
   const pending = {

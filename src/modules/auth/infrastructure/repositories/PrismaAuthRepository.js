@@ -25,7 +25,36 @@ class PrismaAuthRepository extends AuthRepository {
   async findUserById(id) {
     return this.prisma.user.findUnique({
       where: { id },
-      include: { role: true, profile: true },
+      select: {
+        id: true,
+        name: true,
+        phno: true,
+        email: true,
+        emailVerifiedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        role: { select: { name: true } },
+        profile: true,
+        identityDocuments: {
+          select: {
+            frontImageUrl: true,
+            backImageUrl: true,
+            verificationStatus: true,
+          },
+        },
+        categories: {
+          select: {
+            category: {
+              select: {
+                id: true,
+                categoryCode: true,
+                name: true,
+                pairingType: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 

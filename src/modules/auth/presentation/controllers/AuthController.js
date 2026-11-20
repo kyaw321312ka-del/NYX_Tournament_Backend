@@ -54,7 +54,7 @@ function createAuthController({
         const user = User.fromRecord(userRecord);
         return res.status(200).json({
           success: true,
-          data: { user: user.toPublicProfile() },
+          data: { user: user.toAccountProfile() },
         });
       } catch (error) {
         return next(error);

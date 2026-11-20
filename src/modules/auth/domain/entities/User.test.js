@@ -63,3 +63,41 @@ test('public profile leaves legacy birthdays empty', () => {
 
   assert.equal(user.toPublicProfile().birthday, null);
 });
+
+test('account profile includes categories and document status without exposing stored filenames', () => {
+  const user = User.fromRecord({
+    id: 8,
+    name: 'Player',
+    email: 'player@example.com',
+    role: { name: 'user' },
+    updatedAt: new Date('2026-11-20T00:00:00.000Z'),
+    categories: [{
+      category: {
+        id: 3,
+        categoryCode: 'MS',
+        name: "Men's Singles",
+        pairingType: 'singles',
+      },
+    }],
+    identityDocuments: {
+      frontImageUrl: 'private-front.jpg',
+      backImageUrl: null,
+      verificationStatus: 'pending',
+    },
+  });
+
+  const account = user.toAccountProfile();
+  assert.deepEqual(account.categories, [{
+    id: 3,
+    categoryCode: 'MS',
+    name: "Men's Singles",
+    pairingType: 'singles',
+  }]);
+  assert.deepEqual(account.identityDocuments, {
+    frontUploaded: true,
+    backUploaded: false,
+    verificationStatus: 'pending',
+  });
+  assert.equal('frontImageUrl' in account.identityDocuments, false);
+  assert.equal(account.updatedAt.toISOString(), '2026-11-20T00:00:00.000Z');
+});

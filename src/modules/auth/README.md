@@ -16,6 +16,10 @@ All routes are under `/api/auth`:
 | `POST` | `/login` | Sign in with a verified account and return a bearer token |
 | `GET` | `/me` | Return the current account; requires `Authorization: Bearer <token>` |
 
+`GET /api/auth/me` returns the authenticated account's contact and profile
+fields, selected player categories, and identity-document upload/verification
+status. It does not expose private document filenames or password hashes.
+
 Update the current player's profile with `PATCH /api/users/me`, for example
 with JSON body `{"clubName":"Yangon Badminton Club","address":"Yangon"}`.
 Use `null` to clear either field. The profile response includes `clubName` and
@@ -34,8 +38,8 @@ publicly served.
 The required `gender` field accepts `male` or `female` (case-insensitive);
 `birthday` is a required date in `YYYY-MM-DD` format. `address` is limited to
 500 characters and `clubName` to 150 characters. Both are saved to the player
-profile after email verification. Gender determines eligibility for gendered tournament categories.
-Gender determines eligibility for gendered tournament categories.
+profile after email verification. Gender determines eligibility for gendered
+tournament categories.
 
 Verification accepts `{ "email", "otp" }`. Login accepts `{ "email",
 "password" }`. Passwords are bcrypt-hashed; verification codes are stored as

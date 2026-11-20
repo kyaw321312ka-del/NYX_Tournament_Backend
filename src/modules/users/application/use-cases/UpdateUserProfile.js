@@ -38,6 +38,7 @@ class UpdateUserProfile {
         const update = {
             name: input.name,
             clubName: input.clubName,
+            address: input.address,
             gender: input.gender,
             birthday: input.birthday ? new Date(`${input.birthday}T00:00:00.000Z`) : undefined,
             phno: input.phno,
@@ -97,7 +98,7 @@ class UpdateUserProfile {
         }
 
         return {
-            user: User.fromRecord(result.user ?? result).toPublicProfile(),
+            user: User.fromRecord(result.user ?? result).toAccountProfile(),
             emailVerificationRequired: Boolean(emailChange),
             pendingEmail: emailChange?.newEmail ?? null,
         };
