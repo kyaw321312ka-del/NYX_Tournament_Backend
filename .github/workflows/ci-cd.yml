@@ -274,9 +274,9 @@ jobs:
           base_url="https://api.nyxtournament.com"
           routes=(
             "/api/admin/users?page=1&pageSize=1"
-            "/api/admin/users/1"
-            "/api/admin/users/1/identity-documents/front"
-            "/api/admin/users/1/identity-documents/back"
+            "/api/admin/users/3"
+            "/api/admin/users/3/identity-documents/front"
+            "/api/admin/users/3/identity-documents/back"
           )
 
           for attempt in {1..12}; do
