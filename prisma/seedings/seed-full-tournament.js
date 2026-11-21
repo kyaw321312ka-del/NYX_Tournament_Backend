@@ -7,6 +7,7 @@ const PrismaTournamentDrawRepository = require('../../src/modules/draws/infrastr
 const prisma = require('../../src/shared/database/prisma');
 
 const PLAYER_COUNT = 35;
+const ADDITIONAL_PLAYER_COUNT = 15;
 const TOURNAMENT_TITLE = 'NYX Seeded Test Open';
 const CATEGORY_CODE = 'MS';
 const PAYMENT_METHOD_NAME = 'NYX Seed Test Payment';
@@ -15,16 +16,17 @@ const PAYMENT_PROOF = Buffer.from(
     'base64',
 );
 
-function getTestPlayers() {
-    return Array.from({ length: PLAYER_COUNT }, (_, index) => {
-        const number = String(index + 1).padStart(2, '0');
+function getTestPlayers(startIndex = 0, playerCount = PLAYER_COUNT) {
+    return Array.from({ length: playerCount }, (_, index) => {
+        const playerNumber = startIndex + index + 1;
+        const number = String(playerNumber).padStart(2, '0');
         return {
             name: `NYX Seed Player ${number}`,
             email: `nyx.seed.player.${number}@example.test`,
-            phno: `+959000000${String(index + 1).padStart(3, '0')}`,
+            phno: `+959000000${String(playerNumber).padStart(3, '0')}`,
             gender: 'male',
-            birthday: new Date(Date.UTC(1990 + (index % 10), 0, 1)),
-            clubName: `Seed Test Club ${String((index % 5) + 1).padStart(2, '0')}`,
+            birthday: new Date(Date.UTC(1990 + ((playerNumber - 1) % 10), 0, 1)),
+            clubName: `Seed Test Club ${String(((playerNumber - 1) % 5) + 1).padStart(2, '0')}`,
         };
     });
 }
@@ -96,7 +98,10 @@ async function getPaymentProof(storage, database) {
     return { filename: await storage.save(PAYMENT_PROOF), created: true };
 }
 
-async function seedFullTournament(database, env, dependencies = {}) {
+async function seedFullTournament(database, env, dependencies = {}, options = {}) {
+    const playerStartIndex = options.playerStartIndex ?? 0;
+    const playerCount = options.playerCount ?? PLAYER_COUNT;
+    const createDraw = options.createDraw !== false;
     const { adminEmail, password } = validateEnvironment(env);
     const admin = await database.user.findUnique({
         where: { email: adminEmail },
@@ -272,7 +277,7 @@ async function seedFullTournament(database, env, dependencies = {}) {
             }
 
             const registrationIds = [];
-            for (const player of getTestPlayers()) {
+            for (const player of getTestPlayers(playerStartIndex, playerCount)) {
                 let user = await transaction.user.findUnique({
                     where: { email: player.email },
                     select: {
@@ -422,48 +427,63 @@ async function seedFullTournament(database, env, dependencies = {}) {
         throw error;
     }
 
-    let draw;
-    try {
-        draw = await drawRepository.getLatestDraw(seeded.tournamentCategoryId);
-    } catch (error) {
-        if (error.statusCode !== 404) throw error;
-    }
+    let draw = null;
+    if (createDraw) {
+        try {
+            draw = await drawRepository.getLatestDraw(seeded.tournamentCategoryId);
+        } catch (error) {
+            if (error.statusCode !== 404) throw error;
+        }
 
-    const registrationIds = new Set(seeded.registrationIds);
-    const currentPublishedDrawIsComplete = draw?.status === 'PUBLISHED'
-        && draw.configurationSnapshot?.bracketSize === 2 ** Math.ceil(Math.log2(PLAYER_COUNT))
-        && draw.participants?.length === PLAYER_COUNT
-        && draw.participants.every(({ registrationId }) => registrationIds.has(registrationId));
-    if (!currentPublishedDrawIsComplete) {
-        const draft = await drawRepository.createDraft(seeded.tournamentCategoryId, {
-            drawFormat: 'SINGLE_ELIMINATION',
-            seedingMethod: 'MANUAL',
-        });
-        await drawRepository.assignPositions(draft.id, getPlayerAssignments(seeded.registrationIds));
-        draw = await drawRepository.publish(draft.id);
+        const registrationIds = new Set(seeded.registrationIds);
+        const bracketSize = 2 ** Math.ceil(Math.log2(playerCount));
+        const currentPublishedDrawIsComplete = draw?.status === 'PUBLISHED'
+            && draw.configurationSnapshot?.bracketSize === bracketSize
+            && draw.participants?.length === playerCount
+            && draw.participants.every(({ registrationId }) => registrationIds.has(registrationId));
+        if (!currentPublishedDrawIsComplete) {
+            const draft = await drawRepository.createDraft(seeded.tournamentCategoryId, {
+                drawFormat: 'SINGLE_ELIMINATION',
+                seedingMethod: 'MANUAL',
+            });
+            await drawRepository.assignPositions(draft.id, getPlayerAssignments(seeded.registrationIds));
+            draw = await drawRepository.publish(draft.id);
+        }
     }
 
     return {
         tournamentId: seeded.tournamentId,
         tournamentCategoryId: seeded.tournamentCategoryId,
-        playerCount: PLAYER_COUNT,
+        playerCount,
         registrationCount: seeded.registrationIds.length,
-        drawId: draw.id,
-        drawVersion: draw.version,
-        bracketSize: 2 ** Math.ceil(Math.log2(PLAYER_COUNT)),
+        drawId: draw?.id ?? null,
+        drawVersion: draw?.version ?? null,
+        bracketSize: draw ? 2 ** Math.ceil(Math.log2(playerCount)) : null,
         paymentProof: '/api/admin/payments/:paymentId/proof (shared test image)',
         testUserEmailPattern: 'nyx.seed.player.NN@example.test',
+        testUserEmailRange: `nyx.seed.player.${String(playerStartIndex + 1).padStart(2, '0')}@example.test through nyx.seed.player.${String(playerStartIndex + playerCount).padStart(2, '0')}@example.test`,
         testUserPasswordEnvironmentVariable: 'TEST_USERS_PASSWORD',
     };
 }
 
+function seedAdditionalEligibleRegistrations(database, env, dependencies = {}) {
+    return seedFullTournament(database, env, dependencies, {
+        playerStartIndex: PLAYER_COUNT,
+        playerCount: ADDITIONAL_PLAYER_COUNT,
+        createDraw: false,
+    });
+}
+
 if (require.main === module) {
-    seedFullTournament(prisma, process.env)
+    const seed = process.argv.includes('--eligible-only')
+        ? seedAdditionalEligibleRegistrations
+        : seedFullTournament;
+    seed(prisma, process.env)
         .then((result) => {
-            console.log('Full tournament test data is ready:', result);
+            console.log('Tournament test registrations are ready:', result);
         })
         .catch((error) => {
-            console.error('Failed to seed full tournament test data:', error.message);
+            console.error('Failed to seed tournament test data:', error.message);
             process.exitCode = 1;
         })
         .finally(async () => {
@@ -473,5 +493,6 @@ if (require.main === module) {
 
 module.exports = {
     seedFullTournament,
+    seedAdditionalEligibleRegistrations,
     getPlayerAssignments,
 };

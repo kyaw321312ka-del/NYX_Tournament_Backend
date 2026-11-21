@@ -10,6 +10,13 @@ Admins configure category scoring rules and placement point tiers through
 are snapshotted when the draw is created, so results use the same rules even
 if category settings later change.
 
+For development testing, `npm run seed:eligible-registrations` adds 15 more
+confirmed, paid test registrations to the seeded tournament category without
+creating or changing a draw. The new accounts are
+`nyx.seed.player.36@example.test` through `nyx.seed.player.50@example.test`.
+It requires `SEED_TEST_DATA=true`, an existing `ADMIN_EMAIL`, and
+`TEST_USERS_PASSWORD` in the local environment, and refuses to run in production.
+
 All admin endpoints require an admin bearer token.
 
 0. Read supported draw options and a category's saved configuration:

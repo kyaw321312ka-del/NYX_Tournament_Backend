@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const bcrypt = require('bcryptjs');
 const {
     seedFullTournament,
+    seedAdditionalEligibleRegistrations,
     getPlayerAssignments,
 } = require('../prisma/seedings/seed-full-tournament');
 
@@ -301,6 +302,34 @@ test('seeds 35 test players through paid registrations and a published 64-slot d
         return firstSlot !== secondSlot;
     }).filter(Boolean);
     assert.equal(byeMatches.length, 29);
+});
+
+test('seeds 15 additional confirmed paid registrations without creating a draw', async () => {
+    const context = createSeedContext();
+    const result = await seedAdditionalEligibleRegistrations(
+        context.database,
+        validEnvironment,
+        {
+            drawRepository: context.drawRepository,
+            proofStorage: context.proofStorage,
+        },
+    );
+
+    assert.equal(result.tournamentCategoryId, 5);
+    assert.equal(result.playerCount, 15);
+    assert.equal(result.registrationCount, 15);
+    assert.equal(result.drawId, null);
+    assert.equal(result.drawVersion, null);
+    assert.equal(result.bracketSize, null);
+    assert.equal(result.testUserEmailRange, 'nyx.seed.player.36@example.test through nyx.seed.player.50@example.test');
+    assert.equal(context.users.size, 15);
+    assert.equal(context.registrations.size, 15);
+    assert.equal(context.payments.size, 15);
+    assert.equal(context.calls.registrationCreates.length, 15);
+    assert.ok(context.calls.paymentCreates.every(({ status }) => status === 'paid'));
+    assert.equal(context.calls.draftCreates.length, 0);
+    assert.equal(context.calls.assignments.length, 0);
+    assert.equal(context.calls.publishes, 0);
 });
 
 test('balances byes across first-round matches when generating positions', () => {

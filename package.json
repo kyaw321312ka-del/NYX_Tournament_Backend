@@ -15,6 +15,7 @@
     "seed:payment-methods": "node prisma/seedings/seed-payment-methods.js",
     "seed:test-users": "node prisma/seedings/seed-test-users.js",
     "seed:full-tournament": "node prisma/seedings/seed-full-tournament.js",
+    "seed:eligible-registrations": "node prisma/seedings/seed-full-tournament.js --eligible-only",
     "postinstall": "prisma skills sync || exit 0"
   },
   "keywords": [],
