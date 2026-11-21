@@ -601,3 +601,15 @@ model TournamentPayment {
   @@index([status, createdAt])
   @@map("tournament_payments")
 }
+
+model ContactSupport {
+  id        Int      @id @default(1)
+  phone     String   @db.VarChar(50)
+  website   String   @db.VarChar(2048)
+  email     String   @db.VarChar(254)
+  address   String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("contact_support")
+}

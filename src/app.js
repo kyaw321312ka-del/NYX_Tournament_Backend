@@ -11,6 +11,7 @@ const createPaymentMethodModule = require('./bootstrap/paymentMethods');
 const createPaymentModule = require('./bootstrap/payments');
 const createUserModule = require('./bootstrap/users');
 const createDrawModule = require('./bootstrap/draws');
+const createContactSupportModule = require('./bootstrap/contactSupport');
 const createCorsMiddleware = require('./shared/middleware/configureCors');
 const errorHandler = require('./shared/middleware/errorHandler');
 const notFound = require('./shared/middleware/notFound');
@@ -47,6 +48,10 @@ const drawRoutes = createDrawModule({
     prisma,
     authenticate: authModule.authenticate,
 });
+const contactSupportRoutes = createContactSupportModule({
+    prisma,
+    authenticate: authModule.authenticate,
+});
 
 app.use(createCorsMiddleware());
 app.use(express.json());
@@ -76,6 +81,7 @@ app.use('/api', paymentRoutes);
 app.use('/api/users', userModule.userRoutes);
 app.use('/api', userModule.adminUserRoutes);
 app.use('/api', drawRoutes);
+app.use('/api', contactSupportRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'Node.js API is running!' });

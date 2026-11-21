@@ -19,6 +19,7 @@
     "seed:match-results": "node prisma/seedings/seed-match-results.js",
     "seed:doubles-tournament": "node prisma/seedings/seed-doubles-tournament.js",
     "seed:doubles-tournament-with-results": "node prisma/seedings/seed-doubles-tournament.js --with-results",
+    "seed:contact-support": "node prisma/seedings/seed-contact-support.js",
     "postinstall": "prisma skills sync || exit 0"
   },
   "keywords": [],
