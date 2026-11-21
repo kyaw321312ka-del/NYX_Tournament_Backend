@@ -17,6 +17,18 @@ creating or changing a draw. The new accounts are
 It requires `SEED_TEST_DATA=true`, an existing `ADMIN_EMAIL`, and
 `TEST_USERS_PASSWORD` in the local environment, and refuses to run in production.
 
+`npm run seed:doubles-tournament` adds 15 confirmed, paid men's-doubles team
+registrations (30 test players) to the same test tournament. It creates or
+updates the men's-doubles category but does not create a draw. The accounts use
+`nyx.seed.doubles.player.01@example.test` through
+`nyx.seed.doubles.player.30@example.test` and the local
+`TEST_USERS_PASSWORD`.
+
+Use `npm run seed:doubles-tournament-with-results` to create or reuse and publish
+the 16-position doubles draw, assign its teams, and generate synthetic results
+for every playable match. It leaves the draw unfinalized. The command is
+idempotent and preserves results that already exist.
+
 After publishing the seeded draw, `npm run seed:match-results` adds synthetic
 scores to its remaining playable matches. It preserves results already entered,
 uses the draw's scoring-rule snapshot, and does not finalize the draw. It

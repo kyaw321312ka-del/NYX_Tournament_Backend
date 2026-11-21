@@ -53,8 +53,9 @@ function createWinningGames(scoringRules, winnerNumber) {
     }));
 }
 
-async function seedMatchResults(database, env, dependencies = {}) {
+async function seedMatchResults(database, env, dependencies = {}, options = {}) {
     validateEnvironment(env);
+    const categoryCode = options.categoryCode ?? CATEGORY_CODE;
 
     const tournament = await database.tournament.findFirst({
         where: { title: TOURNAMENT_TITLE },
@@ -64,7 +65,7 @@ async function seedMatchResults(database, env, dependencies = {}) {
         throw new Error('The seeded test tournament was not found.');
     }
     const category = await database.category.findUnique({
-        where: { categoryCode: CATEGORY_CODE },
+        where: { categoryCode },
         select: { id: true },
     });
     if (!category) {

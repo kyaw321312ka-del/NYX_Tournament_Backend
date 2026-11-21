@@ -495,4 +495,8 @@ module.exports = {
     seedFullTournament,
     seedAdditionalEligibleRegistrations,
     getPlayerAssignments,
+    validateEnvironment,
+    getPaymentProof,
+    TOURNAMENT_TITLE,
+    PAYMENT_METHOD_NAME,
 };
