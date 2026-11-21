@@ -26,6 +26,7 @@ test('adds a third-place match sourced from semifinal losers', () => {
         thirdPlaceMatch: true,
     });
     const thirdPlace = matches.find(({ key }) => key === 'SE-THIRD-PLACE');
+    const semifinalSources = thirdPlace.slots.map(({ sourceMatchKey }) => sourceMatchKey);
 
     assert.equal(thirdPlace.roundNumber, 4);
     assert.equal(thirdPlace.matchNumber, 1);
@@ -33,6 +34,11 @@ test('adds a third-place match sourced from semifinal losers', () => {
         { slotNumber: 1, sourceMatchKey: 'SE-R2-M1' },
         { slotNumber: 2, sourceMatchKey: 'SE-R2-M2' },
     ]);
+    assert.ok(semifinalSources.every((sourceMatchKey) => (
+        matches.filter(({ slots }) => slots.some(
+            (slot) => slot.sourceMatchKey === sourceMatchKey,
+        )).length === 2
+    )));
 });
 
 test('rejects bracket sizes that are not powers of two', () => {

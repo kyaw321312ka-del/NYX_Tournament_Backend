@@ -215,6 +215,20 @@ class PrismaTournamentDrawRepository {
                 throw new HttpError(404, 'Tournament category not found.');
             }
 
+            const finalizedDraw = await transaction.tournamentDraw.findFirst({
+                where: {
+                    tournamentCategoryId: categoryId,
+                    finalizedAt: { not: null },
+                },
+                select: { id: true },
+            });
+            if (finalizedDraw) {
+                throw new HttpError(
+                    409,
+                    'Tournament results have already been finalized for this category. A new draw cannot be created.',
+                );
+            }
+
             const eligibleRegistrations = await transaction.tournamentRegistration.findMany({
                 where: {
                     tournamentCategoryId: categoryId,

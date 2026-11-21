@@ -154,6 +154,40 @@ test('creates a power-of-two draft with open positions and match feeders', async
     assert.equal(calls.configuration.update.drawFormat, 'SINGLE_ELIMINATION');
 });
 
+test('prevents creating another draft after results were finalized for the category', async () => {
+    const calls = { writes: 0 };
+    const transaction = {
+        $queryRaw: async () => [{ id: 3 }],
+        tournamentDraw: {
+            findFirst: async ({ where }) => {
+                assert.deepEqual(where, {
+                    tournamentCategoryId: 3,
+                    finalizedAt: { not: null },
+                });
+                return { id: 10 };
+            },
+            updateMany: async () => { calls.writes += 1; },
+            create: async () => { calls.writes += 1; },
+        },
+        tournamentRegistration: {
+            findMany: async () => { calls.writes += 1; return []; },
+        },
+    };
+    const repository = new PrismaTournamentDrawRepository(
+        { $transaction: (callback) => callback(transaction) },
+        new SingleEliminationGenerator(),
+    );
+
+    await assert.rejects(
+        repository.createDraft(3),
+        {
+            statusCode: 409,
+            message: 'Tournament results have already been finalized for this category. A new draw cannot be created.',
+        },
+    );
+    assert.equal(calls.writes, 0);
+});
+
 test('publishes the assigned draw and propagates bye winners to the final', async () => {
     const participants = [
         { id: 21, registrationId: 31 },

@@ -521,7 +521,6 @@ model TournamentDrawMatchSlot {
   sourceMatch TournamentDrawMatch?       @relation("DrawSlotSourceMatch", fields: [sourceMatchId], references: [id], onDelete: Cascade)
 
   @@unique([matchId, slotNumber], map: "tdms_match_slot_uq")
-  @@unique([sourceMatchId], map: "tdms_source_match_uq")
   @@unique([drawId, bracketPosition], map: "tdms_draw_position_uq")
   @@index([sourceMatchId], map: "tdms_source_match_idx")
   @@map("tournament_draw_match_slots")

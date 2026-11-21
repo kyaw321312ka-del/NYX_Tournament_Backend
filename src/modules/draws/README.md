@@ -124,6 +124,8 @@ All admin endpoints require an admin bearer token.
 
    Read the recorded award history with
    `GET /api/admin/tournament-categories/:categoryId/ranking-point-awards`.
+   Finalization is terminal for the tournament category: creating another
+   draft for that category is rejected after results have been finalized.
 
 7. Read the latest admin draw with
    `GET /api/admin/tournament-categories/:categoryId/draws`, or the published
