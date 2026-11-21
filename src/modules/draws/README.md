@@ -12,6 +12,18 @@ if category settings later change.
 
 All admin endpoints require an admin bearer token.
 
+0. Read supported draw options and a category's saved configuration:
+
+   `GET /api/draw-configurations/options`
+
+   `GET /api/admin/draw-configurations`
+
+   `GET /api/admin/tournament-categories/:categoryId/draw-configuration`
+
+   The first response lists supported formats and seeding methods. The second
+   lists every saved category draw configuration. The third returns the saved
+   configuration row for one tournament category.
+
 1. List eligible entries:
 
    `GET /api/admin/tournament-categories/:categoryId/eligible-registrations`
@@ -19,6 +31,10 @@ All admin endpoints require an admin bearer token.
 2. Create a draft:
 
    `POST /api/admin/tournament-categories/:categoryId/draws`
+
+   A category can use its stored `drawConfiguration`; no JSON body is required.
+   If sent, the legacy body may specify the supported manual single-elimination
+   values:
 
    ```json
    {
@@ -48,6 +64,11 @@ All admin endpoints require an admin bearer token.
    `POST /api/admin/draws/:drawId/publish`
 
    Empty positions are byes, and bye winners advance automatically.
+   When `thirdPlaceMatch` is enabled, the bracket also creates a bronze match
+   between the two semifinal losers. The third-place match appears in its own
+   round, is included in match-result entry, and must be completed before
+   tournament results can be finalized. Third-place winner is placement 3;
+   third-place loser is placement 4.
 
 5. Submit completed match games. Game scores are validated against the scoring
    rules snapshotted from the tournament category when the draw was created:

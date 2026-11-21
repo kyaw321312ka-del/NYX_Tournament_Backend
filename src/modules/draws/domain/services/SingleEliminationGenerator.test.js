@@ -21,6 +21,20 @@ test('generates bracket positions and feeder matches for a power-of-two draw', (
     ]);
 });
 
+test('adds a third-place match sourced from semifinal losers', () => {
+    const { matches } = new SingleEliminationGenerator().generate(8, {
+        thirdPlaceMatch: true,
+    });
+    const thirdPlace = matches.find(({ key }) => key === 'SE-THIRD-PLACE');
+
+    assert.equal(thirdPlace.roundNumber, 4);
+    assert.equal(thirdPlace.matchNumber, 1);
+    assert.deepEqual(thirdPlace.slots, [
+        { slotNumber: 1, sourceMatchKey: 'SE-R2-M1' },
+        { slotNumber: 2, sourceMatchKey: 'SE-R2-M2' },
+    ]);
+});
+
 test('rejects bracket sizes that are not powers of two', () => {
     const generator = new SingleEliminationGenerator();
 

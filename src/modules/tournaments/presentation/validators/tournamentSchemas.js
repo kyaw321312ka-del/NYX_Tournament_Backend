@@ -28,6 +28,12 @@ const ageGroup = z.object({
     age: z.number().int().min(0).max(120),
 }).strict();
 
+const drawConfiguration = z.object({
+    drawFormat: z.literal('SINGLE_ELIMINATION').default('SINGLE_ELIMINATION'),
+    seedingMethod: z.literal('MANUAL').default('MANUAL'),
+    thirdPlaceMatch: z.boolean().default(false),
+}).strict();
+
 const category = z.object({
     categoryCode: z.string().trim().min(1).max(30),
     categoryName: z.string().trim().min(1).max(150),
@@ -50,6 +56,7 @@ const category = z.object({
     shuttleName: z.string().trim().max(150).optional().nullable(),
     shuttleSpeed: z.string().trim().max(30).optional().nullable(),
     ageGroup: ageGroup.nullable().optional(),
+    drawConfiguration: drawConfiguration.optional(),
     pointTiers: z.array(pointTier).default([]),
 }).strict().refine((value) => value.maxPoints >= value.pointsToWin, {
     path: ['maxPoints'],

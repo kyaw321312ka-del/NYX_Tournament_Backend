@@ -4,6 +4,20 @@ const validate = require('../../../../shared/middleware/validateRequest');
 function createDrawRouter({ controller, schemas, authenticate, requireAdmin }) {
     const router = express.Router();
 
+    router.get('/draw-configurations/options', controller.listConfigurationOptions);
+    router.get(
+        '/admin/draw-configurations',
+        authenticate,
+        requireAdmin,
+        controller.listDrawConfigurations,
+    );
+    router.get(
+        '/admin/tournament-categories/:categoryId/draw-configuration',
+        authenticate,
+        requireAdmin,
+        validate(schemas.categoryIdSchema, 'params'),
+        controller.getDrawConfiguration,
+    );
     router.get(
         '/tournament-categories/:categoryId/draw',
         validate(schemas.categoryIdSchema, 'params'),

@@ -3,6 +3,57 @@ const assert = require('node:assert/strict');
 const PrismaTournamentDrawRepository = require('./PrismaTournamentDrawRepository');
 const SingleEliminationGenerator = require('../../domain/services/SingleEliminationGenerator');
 
+test('lists draw configuration options and saved category configurations', async () => {
+    let findUniqueArgs;
+    let findManyArgs;
+    const prisma = {
+        tournamentCategory: {
+            findUnique: async (args) => {
+                findUniqueArgs = args;
+                return {
+                    id: 3,
+                    drawConfiguration: {
+                        id: 9,
+                        tournamentCategoryId: 3,
+                        drawFormat: 'SINGLE_ELIMINATION',
+                        seedingMethod: 'MANUAL',
+                        thirdPlaceMatch: false,
+                    },
+                };
+            },
+        },
+        tournamentDrawConfiguration: {
+            findMany: async (args) => {
+                findManyArgs = args;
+                return [{
+                    id: 9,
+                    tournamentCategoryId: 3,
+                    drawFormat: 'SINGLE_ELIMINATION',
+                    seedingMethod: 'MANUAL',
+                }];
+            },
+        },
+    };
+    const repository = new PrismaTournamentDrawRepository(
+        prisma,
+        new SingleEliminationGenerator(),
+    );
+
+    assert.deepEqual(repository.listConfigurationOptions(), {
+        drawFormats: ['SINGLE_ELIMINATION'],
+        seedingMethods: ['MANUAL'],
+        defaults: {
+            drawFormat: 'SINGLE_ELIMINATION',
+            seedingMethod: 'MANUAL',
+            thirdPlaceMatch: false,
+        },
+    });
+    assert.equal((await repository.getDrawConfiguration(3)).drawFormat, 'SINGLE_ELIMINATION');
+    assert.equal(findUniqueArgs.where.id, 3);
+    assert.equal((await repository.listDrawConfigurations()).length, 1);
+    assert.deepEqual(findManyArgs.orderBy, [{ tournamentCategoryId: 'asc' }, { id: 'asc' }]);
+});
+
 test('creates a power-of-two draft with open positions and match feeders', async () => {
     const calls = { matches: [], slots: [] };
     const record = {
@@ -425,10 +476,12 @@ test('finalizes a completed draw, awards configured points to every doubles memb
         finalizedAt: null,
         configurationSnapshot: {
             bracketSize: 4,
+            thirdPlaceMatch: true,
             pointTiers: [
                 { position: 1, label: 'Champion', points: 300 },
                 { position: 2, label: 'Runner-up', points: 200 },
-                { position: 3, label: 'Semifinalist', points: 100 },
+                { position: 3, label: 'Third place', points: 150 },
+                { position: 4, label: 'Fourth place', points: 100 },
             ],
         },
         participants: [
@@ -458,6 +511,14 @@ test('finalizes a completed draw, awards configured points to every doubles memb
                 status: 'COMPLETED',
                 winnerParticipantId: 11,
                 slots: [{ participantId: 11 }, { participantId: 13 }],
+            },
+            {
+                id: 94,
+                roundNumber: 3,
+                matchNumber: 1,
+                status: 'COMPLETED',
+                winnerParticipantId: 12,
+                slots: [{ participantId: 12 }, { participantId: 14 }],
             },
         ],
     };
@@ -495,8 +556,8 @@ test('finalizes a completed draw, awards configured points to every doubles memb
         [1, 1, 300],
         [5, 1, 300],
         [3, 2, 200],
-        [2, 3, 100],
-        [4, 3, 100],
+        [2, 3, 150],
+        [4, 4, 100],
     ]);
     assert.ok(awardCalls.finalizedAt instanceof Date);
 });

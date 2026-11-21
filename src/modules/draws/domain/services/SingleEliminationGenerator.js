@@ -1,5 +1,5 @@
 class SingleEliminationGenerator {
-    generate(bracketSize) {
+    generate(bracketSize, options = {}) {
         if (!Number.isInteger(bracketSize) || bracketSize < 2 || (bracketSize & (bracketSize - 1)) !== 0) {
             throw new RangeError('Bracket size must be a power of two greater than or equal to 2.');
         }
@@ -11,6 +11,7 @@ class SingleEliminationGenerator {
         const matches = [];
         let matchCount = bracketSize / 2;
         let previousRound = [];
+        let semifinalMatches = null;
 
         for (let roundNumber = 1; matchCount >= 1; roundNumber += 1) {
             const currentRound = [];
@@ -33,8 +34,24 @@ class SingleEliminationGenerator {
                     slots,
                 });
             }
+            if (matchCount === 1) {
+                semifinalMatches = [...previousRound];
+            }
             previousRound = currentRound;
             matchCount = Math.floor(matchCount / 2);
+        }
+
+        if (options.thirdPlaceMatch && bracketSize >= 4) {
+            const thirdPlaceRound = Math.log2(bracketSize);
+            matches.push({
+                key: 'SE-THIRD-PLACE',
+                roundNumber: thirdPlaceRound + 1,
+                matchNumber: 1,
+                slots: [
+                    { slotNumber: 1, sourceMatchKey: semifinalMatches[0] },
+                    { slotNumber: 2, sourceMatchKey: semifinalMatches[1] },
+                ],
+            });
         }
 
         return { positions, matches };

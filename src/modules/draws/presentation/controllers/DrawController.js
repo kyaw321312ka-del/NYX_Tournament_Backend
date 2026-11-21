@@ -1,5 +1,33 @@
 function createDrawController({ manageTournamentDraws }) {
     return {
+        async listConfigurationOptions(req, res, next) {
+            try {
+                return res.status(200).json({
+                    success: true,
+                    data: manageTournamentDraws.listConfigurationOptions(),
+                });
+            } catch (error) {
+                return next(error);
+            }
+        },
+        async getDrawConfiguration(req, res, next) {
+            try {
+                const configuration = await manageTournamentDraws.getDrawConfiguration(
+                    req.validatedParams.categoryId,
+                );
+                return res.status(200).json({ success: true, data: configuration });
+            } catch (error) {
+                return next(error);
+            }
+        },
+        async listDrawConfigurations(req, res, next) {
+            try {
+                const configurations = await manageTournamentDraws.listDrawConfigurations();
+                return res.status(200).json({ success: true, data: configurations });
+            } catch (error) {
+                return next(error);
+            }
+        },
         async listEligibleRegistrations(req, res, next) {
             try {
                 const registrations = await manageTournamentDraws.listEligibleRegistrations(

@@ -30,6 +30,7 @@ class Tournament {
                 const {
                     eventCategory,
                     ageGroup,
+                    drawConfiguration,
                     ...tournamentCategory
                 } = category;
                 return {
@@ -40,6 +41,13 @@ class Tournament {
                     ageGroup: ageGroup ? {
                         ...ageGroup,
                     } : null,
+                    drawConfiguration: drawConfiguration ?? {
+                        drawFormat: 'SINGLE_ELIMINATION',
+                        seedingMethod: 'MANUAL',
+                        groupCount: null,
+                        qualifiersPerGroup: null,
+                        thirdPlaceMatch: false,
+                    },
                     entryFee: category.entryFee?.toString() ?? '0',
                     pointTiers: category.pointTiers,
                 };

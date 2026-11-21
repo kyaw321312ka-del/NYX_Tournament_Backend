@@ -50,6 +50,11 @@ register; categories without an age group remain unrestricted. For example:
   "ageGroup": {
     "name": "U12",
     "age": 12
+  },
+  "drawConfiguration": {
+    "drawFormat": "SINGLE_ELIMINATION",
+    "seedingMethod": "MANUAL",
+    "thirdPlaceMatch": false
   }
 }
 ```

@@ -18,6 +18,15 @@ const tournamentInclude = {
                     age: true,
                 },
             },
+            drawConfiguration: {
+                select: {
+                    drawFormat: true,
+                    seedingMethod: true,
+                    groupCount: true,
+                    qualifiersPerGroup: true,
+                    thirdPlaceMatch: true,
+                },
+            },
             pointTiers: { orderBy: { position: 'asc' } },
         },
     },
@@ -136,11 +145,14 @@ class PrismaTournamentRepository extends TournamentRepository {
             });
             const categories = await resolveTournamentCategories(transaction, data.categories);
             for (const category of categories) {
-                const { pointTiers, ...categoryData } = category;
+                const { pointTiers, drawConfiguration, ...categoryData } = category;
                 await transaction.tournamentCategory.create({
                     data: {
                         tournamentId: created.id,
                         ...categoryData,
+                        drawConfiguration: drawConfiguration
+                            ? { create: drawConfiguration }
+                            : { create: { drawFormat: 'SINGLE_ELIMINATION', seedingMethod: 'MANUAL' } },
                         pointTiers: pointTiers?.length ? { create: pointTiers } : undefined,
                     },
                 });
@@ -233,9 +245,12 @@ class PrismaTournamentRepository extends TournamentRepository {
                     await transaction[model].deleteMany({ where: { tournamentId: id } });
                     createData[field] = { create: items.map((item) => {
                         if (field !== 'categories') return item;
-                        const { pointTiers, ...category } = item;
+                        const { pointTiers, drawConfiguration, ...category } = item;
                         return {
                             ...category,
+                            drawConfiguration: drawConfiguration
+                                ? { create: drawConfiguration }
+                                : { create: { drawFormat: 'SINGLE_ELIMINATION', seedingMethod: 'MANUAL' } },
                             pointTiers: pointTiers?.length ? { create: pointTiers } : undefined,
                         };
                     }) };

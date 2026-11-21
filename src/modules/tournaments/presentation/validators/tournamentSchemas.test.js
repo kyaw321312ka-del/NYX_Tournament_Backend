@@ -48,6 +48,48 @@ test('category entry fees are validated and tournament-level fees are rejected',
     }).success, false);
 });
 
+test('category defaults to manual single-elimination configuration', () => {
+    const result = createTournamentSchema.parse({
+        ...validTournament,
+        categories: [{
+            categoryCode: 'MS',
+            categoryName: 'Men Singles',
+            pairingType: 'singles',
+            matchFormat: 'Best of 3',
+        }],
+    });
+    assert.equal(result.categories[0].drawConfiguration, undefined);
+});
+
+test('category validates the configured draw format and seeding method', () => {
+    const category = {
+        categoryCode: 'MS',
+        categoryName: 'Men Singles',
+        pairingType: 'singles',
+        matchFormat: 'Best of 3',
+        drawConfiguration: {
+            drawFormat: 'SINGLE_ELIMINATION',
+            seedingMethod: 'MANUAL',
+            thirdPlaceMatch: true,
+        },
+    };
+    const result = createTournamentSchema.parse({
+        ...validTournament,
+        categories: [category],
+    });
+    assert.deepEqual(result.categories[0].drawConfiguration, category.drawConfiguration);
+    assert.equal(createTournamentSchema.safeParse({
+        ...validTournament,
+        categories: [{
+            ...category,
+            drawConfiguration: {
+                ...category.drawConfiguration,
+                seedingMethod: 'RANKING',
+            },
+        }],
+    }).success, false);
+});
+
 test('category scoring rules accept the 15-point format and reject invalid caps', () => {
     const category = {
         categoryCode: 'MS',

@@ -48,6 +48,15 @@ function nextBracketSize(entrantCount) {
 }
 
 async function advanceResolvedMatches(transaction, drawId) {
+    const draw = await transaction.tournamentDraw.findUnique({
+        where: { id: drawId },
+        select: { configurationSnapshot: true },
+    });
+    const bracketSize = draw?.configurationSnapshot?.bracketSize;
+    const thirdPlaceRound = draw?.configurationSnapshot?.thirdPlaceMatch === true
+        && Number.isInteger(bracketSize)
+        ? Math.log2(bracketSize) + 1
+        : null;
     const matches = await transaction.tournamentDrawMatch.findMany({
         where: { drawId },
         orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }],
@@ -66,7 +75,9 @@ async function advanceResolvedMatches(transaction, drawId) {
                     unresolvedSource = true;
                     continue;
                 }
-                participantId = source.winnerParticipantId;
+                participantId = match.roundNumber === thirdPlaceRound
+                    ? source.loserParticipantId
+                    : source.winnerParticipantId;
             }
             if (slot.participantId !== participantId) {
                 await transaction.tournamentDrawMatchSlot.update({
@@ -97,6 +108,11 @@ async function advanceResolvedMatches(transaction, drawId) {
         outcomes.set(match.id, {
             resolved: status !== 'PENDING',
             winnerParticipantId: status === 'EMPTY' ? null : winnerParticipantId,
+            loserParticipantId: status === 'COMPLETED'
+                ? match.slots.find(({ participantId: slotParticipantId }) => (
+                    slotParticipantId !== null && slotParticipantId !== winnerParticipantId
+                ))?.participantId ?? null
+                : null,
         });
     }
 }
@@ -105,6 +121,58 @@ class PrismaTournamentDrawRepository {
     constructor(prisma, generator) {
         this.prisma = prisma;
         this.generator = generator;
+    }
+
+    listConfigurationOptions() {
+        return {
+            drawFormats: ['SINGLE_ELIMINATION'],
+            seedingMethods: ['MANUAL'],
+            defaults: {
+                drawFormat: 'SINGLE_ELIMINATION',
+                seedingMethod: 'MANUAL',
+                thirdPlaceMatch: false,
+            },
+        };
+    }
+
+    async getDrawConfiguration(tournamentCategoryId) {
+        const categoryId = Number(tournamentCategoryId);
+        const category = await this.prisma.tournamentCategory.findUnique({
+            where: { id: categoryId },
+            select: {
+                id: true,
+                drawConfiguration: true,
+            },
+        });
+        if (!category) {
+            throw new HttpError(404, 'Tournament category not found.');
+        }
+        return category.drawConfiguration ?? {
+            tournamentCategoryId: categoryId,
+            drawFormat: 'SINGLE_ELIMINATION',
+            seedingMethod: 'MANUAL',
+            groupCount: null,
+            qualifiersPerGroup: null,
+            thirdPlaceMatch: false,
+        };
+    }
+
+    async listDrawConfigurations() {
+        return this.prisma.tournamentDrawConfiguration.findMany({
+            orderBy: [{ tournamentCategoryId: 'asc' }, { id: 'asc' }],
+            include: {
+                tournamentCategory: {
+                    select: {
+                        id: true,
+                        tournament: { select: { id: true, title: true } },
+                        eventCategory: {
+                            select: { categoryCode: true, name: true, pairingType: true },
+                        },
+                        ageGroup: { select: { id: true, name: true, age: true } },
+                    },
+                },
+            },
+        });
     }
 
     async listEligibleRegistrations(tournamentCategoryId) {
@@ -165,6 +233,15 @@ class PrismaTournamentDrawRepository {
                     winningMargin: true,
                     maxPoints: true,
                     gamesToWin: true,
+                    drawConfiguration: {
+                        select: {
+                            drawFormat: true,
+                            seedingMethod: true,
+                            groupCount: true,
+                            qualifiersPerGroup: true,
+                            thirdPlaceMatch: true,
+                        },
+                    },
                     pointTiers: {
                         orderBy: { position: 'asc' },
                         select: { position: true, label: true, points: true },
@@ -186,10 +263,17 @@ class PrismaTournamentDrawRepository {
             }
 
             const bracketSize = nextBracketSize(eligibleRegistrations.length);
+            const storedConfiguration = category.drawConfiguration;
             const drawConfiguration = {
-                ...configuration,
-                groupCount: null,
-                qualifiersPerGroup: null,
+                drawFormat: configuration?.drawFormat
+                    ?? storedConfiguration?.drawFormat
+                    ?? 'SINGLE_ELIMINATION',
+                seedingMethod: configuration?.seedingMethod
+                    ?? storedConfiguration?.seedingMethod
+                    ?? 'MANUAL',
+                groupCount: storedConfiguration?.groupCount ?? null,
+                qualifiersPerGroup: storedConfiguration?.qualifiersPerGroup ?? null,
+                thirdPlaceMatch: storedConfiguration?.thirdPlaceMatch === true,
             };
             const latest = await transaction.tournamentDraw.findFirst({
                 where: { tournamentCategoryId: categoryId },
@@ -214,16 +298,20 @@ class PrismaTournamentDrawRepository {
                     seedingMethod: drawConfiguration.seedingMethod,
                     groupCount: drawConfiguration.groupCount,
                     qualifiersPerGroup: drawConfiguration.qualifiersPerGroup,
+                    thirdPlaceMatch: drawConfiguration.thirdPlaceMatch,
                 },
                 update: {
                     drawFormat: drawConfiguration.drawFormat,
                     seedingMethod: drawConfiguration.seedingMethod,
                     groupCount: drawConfiguration.groupCount,
                     qualifiersPerGroup: drawConfiguration.qualifiersPerGroup,
+                    thirdPlaceMatch: drawConfiguration.thirdPlaceMatch,
                 },
             });
 
-            const structure = this.generator.generate(bracketSize);
+            const structure = this.generator.generate(bracketSize, {
+                thirdPlaceMatch: drawConfiguration.thirdPlaceMatch === true,
+            });
             const assignmentPositions = structure.positions.filter(({ assignable }) => assignable);
             const draw = await transaction.tournamentDraw.create({
                 data: {
@@ -232,6 +320,7 @@ class PrismaTournamentDrawRepository {
                     configurationSnapshot: {
                         ...drawConfiguration,
                         bracketSize,
+                        thirdPlaceMatch: drawConfiguration.thirdPlaceMatch === true,
                         positionCount: structure.positions.length,
                         expectedMatchCount: structure.matches.length,
                         positions: structure.positions,
@@ -511,6 +600,10 @@ class PrismaTournamentDrawRepository {
                 throw new HttpError(409, 'All assigned registrations must remain confirmed before publishing.');
             }
 
+            const thirdPlaceRound = draw.configurationSnapshot.thirdPlaceMatch === true
+                && Number.isInteger(bracketSize)
+                ? Math.log2(bracketSize) + 1
+                : null;
             const outcomes = new Map();
             for (const match of draw.matches) {
                 let unresolved = false;
@@ -524,7 +617,9 @@ class PrismaTournamentDrawRepository {
                             unresolved = true;
                             continue;
                         }
-                        participantId = source.winnerParticipantId;
+                        participantId = match.roundNumber === thirdPlaceRound
+                            ? source.loserParticipantId
+                            : source.winnerParticipantId;
                     }
                     if (participantId !== null) {
                         slotParticipants.push(participantId);
@@ -558,7 +653,11 @@ class PrismaTournamentDrawRepository {
                     where: { id: match.id },
                     data: { status, winnerParticipantId },
                 });
-                outcomes.set(match.id, { resolved, winnerParticipantId });
+                outcomes.set(match.id, {
+                    resolved,
+                    winnerParticipantId,
+                    loserParticipantId: null,
+                });
             }
 
             await transaction.tournamentDraw.updateMany({
@@ -685,13 +784,23 @@ class PrismaTournamentDrawRepository {
                 throw new HttpError(409, 'Every playable match must be completed before finalizing results.');
             }
 
-            const finalMatch = draw.matches.reduce((latest, match) => (
-                !latest || match.roundNumber > latest.roundNumber ? match : latest
+            const bracketSize = draw.configurationSnapshot.bracketSize;
+            const thirdPlaceEnabled = draw.configurationSnapshot.thirdPlaceMatch === true;
+            const finalRound = Number.isInteger(bracketSize)
+                ? Math.log2(bracketSize)
+                : null;
+            const finalMatch = draw.matches.find((match) => (
+                finalRound !== null
+                && match.roundNumber === finalRound
+                && match.matchNumber === 1
+            )) ?? draw.matches.reduce((latest, match) => (
+                thirdPlaceEnabled && match.roundNumber > finalRound
+                    ? latest
+                    : (!latest || match.roundNumber > latest.roundNumber ? match : latest)
             ), null);
             if (!finalMatch?.winnerParticipantId) {
                 throw new HttpError(409, 'The final bracket position has no determined winner.');
             }
-            const bracketSize = draw.configurationSnapshot.bracketSize;
             if (!Number.isInteger(bracketSize) || bracketSize < 2) {
                 throw new HttpError(409, 'This draw has no valid bracket size and cannot be finalized.');
             }
@@ -718,13 +827,41 @@ class PrismaTournamentDrawRepository {
             if (runnerUpParticipantId !== null) {
                 placements.set(runnerUpParticipantId, 2);
             }
+
+            if (thirdPlaceEnabled && bracketSize >= 4) {
+                const thirdPlaceMatch = draw.matches.find((match) => (
+                    finalRound !== null
+                    && match.roundNumber === finalRound + 1
+                    && match.matchNumber === 1
+                ));
+                if (!thirdPlaceMatch || thirdPlaceMatch.status === 'PENDING') {
+                    throw new HttpError(409, 'The third-place match must be completed before finalizing results.');
+                }
+                if (thirdPlaceMatch.status === 'COMPLETED' && thirdPlaceMatch.winnerParticipantId) {
+                    placements.set(thirdPlaceMatch.winnerParticipantId, 3);
+                    const thirdPlaceLoser = thirdPlaceMatch.slots.find(
+                        ({ participantId }) => participantId !== null
+                            && participantId !== thirdPlaceMatch.winnerParticipantId,
+                    )?.participantId ?? null;
+                    if (thirdPlaceLoser !== null) {
+                        placements.set(thirdPlaceLoser, 4);
+                    }
+                } else if (thirdPlaceMatch.status === 'BYE' && thirdPlaceMatch.winnerParticipantId) {
+                    placements.set(thirdPlaceMatch.winnerParticipantId, 3);
+                }
+            }
+
             for (const match of draw.matches) {
+                if (thirdPlaceEnabled && finalRound !== null && match.roundNumber === finalRound + 1) {
+                    continue;
+                }
                 if (match.status !== 'COMPLETED' || !match.winnerParticipantId) continue;
                 const loser = match.slots.find(
                     ({ participantId }) => participantId !== null && participantId !== match.winnerParticipantId,
                 );
                 if (!loser) continue;
                 if (loser.participantId === runnerUpParticipantId) continue;
+                if (placements.has(loser.participantId)) continue;
                 const position = Math.floor(bracketSize / (2 ** match.roundNumber)) + 1;
                 placements.set(loser.participantId, position);
             }

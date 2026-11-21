@@ -41,9 +41,16 @@ class TournamentDraw {
             if (!rounds.has(match.roundNumber)) {
                 rounds.set(match.roundNumber, []);
             }
+            const finalRound = Number.isInteger(configuration.bracketSize)
+                ? Math.log2(configuration.bracketSize)
+                : null;
+            const isThirdPlace = configuration.thirdPlaceMatch === true
+                && finalRound !== null
+                && match.roundNumber === finalRound + 1;
             rounds.get(match.roundNumber).push({
                 id: match.id,
                 matchNumber: match.matchNumber,
+                matchType: isThirdPlace ? 'THIRD_PLACE' : 'BRACKET',
                 status: match.status,
                 result: match.result ?? null,
                 winner: serializeParticipant(match.winnerParticipant),
@@ -65,6 +72,7 @@ class TournamentDraw {
                 drawFormat: configuration.drawFormat ?? 'SINGLE_ELIMINATION',
                 seedingMethod: configuration.seedingMethod ?? 'MANUAL',
                 bracketSize: configuration.bracketSize ?? null,
+                thirdPlaceMatch: configuration.thirdPlaceMatch === true,
                 scoringRules: configuration.scoringRules ?? null,
                 pointTiers: configuration.pointTiers ?? [],
                 eligibleRegistrationCount: eligibleRegistrationIds.length,

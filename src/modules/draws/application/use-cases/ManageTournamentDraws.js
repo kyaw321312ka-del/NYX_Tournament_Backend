@@ -7,6 +7,18 @@ class ManageTournamentDraws {
         return this.drawRepository.listEligibleRegistrations(categoryId);
     }
 
+    listConfigurationOptions() {
+        return this.drawRepository.listConfigurationOptions();
+    }
+
+    getDrawConfiguration(categoryId) {
+        return this.drawRepository.getDrawConfiguration(categoryId);
+    }
+
+    listDrawConfigurations() {
+        return this.drawRepository.listDrawConfigurations();
+    }
+
     createDraft(categoryId, configuration) {
         return this.drawRepository.createDraft(categoryId, configuration);
     }

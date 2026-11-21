@@ -19,9 +19,9 @@ const categoryAndDrawIdSchema = z.object({
 });
 
 const createDrawSchema = z.object({
-    drawFormat: z.literal('SINGLE_ELIMINATION'),
-    seedingMethod: z.literal('MANUAL'),
-}).strict();
+    drawFormat: z.literal('SINGLE_ELIMINATION').optional(),
+    seedingMethod: z.literal('MANUAL').optional(),
+}).strict().optional();
 
 const assignmentSchema = z.object({
     registrationId: z.coerce.number().int().positive(),

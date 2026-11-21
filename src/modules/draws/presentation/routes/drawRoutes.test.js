@@ -36,6 +36,27 @@ async function createServer(t, controller, adminCalls) {
 
 function createController() {
     return {
+        listConfigurationOptions: (_req, res) => res.json({
+            success: true,
+            data: {
+                drawFormats: ['SINGLE_ELIMINATION'],
+                seedingMethods: ['MANUAL'],
+                defaults: {
+                    drawFormat: 'SINGLE_ELIMINATION',
+                    seedingMethod: 'MANUAL',
+                    thirdPlaceMatch: false,
+                },
+            },
+        }),
+        listDrawConfigurations: (_req, res) => res.json({ success: true, data: [] }),
+        getDrawConfiguration: (req, res) => res.json({
+            success: true,
+            data: {
+                tournamentCategoryId: req.validatedParams.categoryId,
+                drawFormat: 'SINGLE_ELIMINATION',
+                seedingMethod: 'MANUAL',
+            },
+        }),
         listEligibleRegistrations: (_req, res) => res.json({ success: true, data: [] }),
         createDraft: (req, res) => res.status(201).json({
             success: true,
@@ -61,6 +82,33 @@ function createController() {
         }),
     };
 }
+
+test('exposes draw configuration options and category configuration routes', async (t) => {
+    const adminCalls = { count: 0 };
+    const baseUrl = await createServer(t, createController(), adminCalls);
+
+    const options = await fetch(`${baseUrl}/draw-configurations/options`);
+    assert.equal(options.status, 200);
+    assert.deepEqual((await options.json()).data, {
+        drawFormats: ['SINGLE_ELIMINATION'],
+        seedingMethods: ['MANUAL'],
+        defaults: {
+            drawFormat: 'SINGLE_ELIMINATION',
+            seedingMethod: 'MANUAL',
+            thirdPlaceMatch: false,
+        },
+    });
+
+    const category = await fetch(`${baseUrl}/admin/tournament-categories/4/draw-configuration`);
+    assert.equal(category.status, 200);
+    assert.equal((await category.json()).data.tournamentCategoryId, 4);
+    assert.equal(adminCalls.count, 1);
+
+    const allConfigurations = await fetch(`${baseUrl}/admin/draw-configurations`);
+    assert.equal(allConfigurations.status, 200);
+    assert.deepEqual((await allConfigurations.json()).data, []);
+    assert.equal(adminCalls.count, 2);
+});
 
 test('admin draw creation validates input and reaches the guarded endpoint', async (t) => {
     const adminCalls = { count: 0 };
