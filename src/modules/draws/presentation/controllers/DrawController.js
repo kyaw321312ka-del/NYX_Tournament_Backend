@@ -146,6 +146,17 @@ function createDrawController({ manageTournamentDraws }) {
                 return next(error);
             }
         },
+
+        async getCategoryLeaderboard(req, res, next) {
+            try {
+                const leaderboard = await manageTournamentDraws.getCategoryLeaderboard(
+                    req.validatedParams.categoryId,
+                );
+                return res.status(200).json({ success: true, data: leaderboard });
+            } catch (error) {
+                return next(error);
+            }
+        },
     };
 }
 

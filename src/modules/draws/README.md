@@ -17,6 +17,11 @@ creating or changing a draw. The new accounts are
 It requires `SEED_TEST_DATA=true`, an existing `ADMIN_EMAIL`, and
 `TEST_USERS_PASSWORD` in the local environment, and refuses to run in production.
 
+After publishing the seeded draw, `npm run seed:match-results` adds synthetic
+scores to its remaining playable matches. It preserves results already entered,
+uses the draw's scoring-rule snapshot, and does not finalize the draw. It
+requires `SEED_TEST_DATA=true` and refuses to run in production.
+
 All admin endpoints require an admin bearer token.
 
 0. Read supported draw options and a category's saved configuration:
@@ -112,5 +117,13 @@ All admin endpoints require an admin bearer token.
    `GET /api/admin/tournament-categories/:categoryId/draws`, or the published
    draw without authentication with
    `GET /api/tournament-categories/:categoryId/draw`.
+
+8. Read the public category leaderboard after finalizing the published draw:
+
+   `GET /api/tournament-categories/:categoryId/leaderboard`
+
+   The response lists players with configured ranking-point awards, ordered
+   by points and placement. It is public and does not require an admin token.
+   A leaderboard is unavailable until the published draw is finalized.
 
 Round-robin and group-knockout formats are deferred.

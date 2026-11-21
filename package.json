@@ -16,6 +16,7 @@
     "seed:test-users": "node prisma/seedings/seed-test-users.js",
     "seed:full-tournament": "node prisma/seedings/seed-full-tournament.js",
     "seed:eligible-registrations": "node prisma/seedings/seed-full-tournament.js --eligible-only",
+    "seed:match-results": "node prisma/seedings/seed-match-results.js",
     "postinstall": "prisma skills sync || exit 0"
   },
   "keywords": [],

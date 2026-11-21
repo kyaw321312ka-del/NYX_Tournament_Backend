@@ -65,6 +65,10 @@ function createController() {
         getLatestDraw: (_req, res) => res.json({ success: true }),
         getDraw: (_req, res) => res.json({ success: true }),
         getPublishedDraw: (_req, res) => res.json({ success: true, data: { status: 'PUBLISHED' } }),
+        getCategoryLeaderboard: (_req, res) => res.json({
+            success: true,
+            data: { tournamentCategoryId: 4, entries: [] },
+        }),
         assignPositions: (_req, res) => res.json({ success: true }),
         publish: (_req, res) => res.json({ success: true }),
         listRankingPointAwards: (_req, res) => res.json({ success: true, data: [] }),
@@ -143,6 +147,20 @@ test('public draw reads do not pass through admin authentication', async (t) => 
     assert.deepEqual(await response.json(), {
         success: true,
         data: { status: 'PUBLISHED' },
+    });
+});
+
+test('public tournament-category leaderboard does not require admin authentication', async (t) => {
+    const adminCalls = { count: 0 };
+    const baseUrl = await createServer(t, createController(), adminCalls);
+
+    const response = await fetch(`${baseUrl}/tournament-categories/4/leaderboard`);
+
+    assert.equal(response.status, 200);
+    assert.equal(adminCalls.count, 0);
+    assert.deepEqual(await response.json(), {
+        success: true,
+        data: { tournamentCategoryId: 4, entries: [] },
     });
 });
 

@@ -602,6 +602,83 @@ test('lists persisted ranking point history for the selected category', async ()
     });
 });
 
+test('lists a public leaderboard from the finalized published draw', async () => {
+    const repository = new PrismaTournamentDrawRepository({
+        tournamentCategory: {
+            findUnique: async () => ({ id: 3 }),
+        },
+        tournamentDraw: {
+            findFirst: async ({ where, orderBy }) => {
+                assert.deepEqual(where, { tournamentCategoryId: 3, status: 'PUBLISHED' });
+                assert.deepEqual(orderBy, { version: 'desc' });
+                return {
+                    id: 10,
+                    version: 2,
+                    finalizedAt: new Date('2026-11-20T00:00:00Z'),
+                };
+            },
+        },
+        tournamentRankingPointAward: {
+            findMany: async ({ where, orderBy }) => {
+                assert.deepEqual(where, { tournamentCategoryId: 3, drawId: 10 });
+                assert.deepEqual(orderBy, [
+                    { points: 'desc' },
+                    { position: 'asc' },
+                    { userId: 'asc' },
+                ]);
+                return [{
+                    registrationId: 31,
+                    position: 1,
+                    label: 'Champion',
+                    points: 300,
+                    user: { id: 8, name: 'Player One' },
+                }];
+            },
+        },
+    }, new SingleEliminationGenerator());
+
+    const leaderboard = await repository.getCategoryLeaderboard(3);
+
+    assert.deepEqual(leaderboard, {
+        tournamentCategoryId: 3,
+        drawId: 10,
+        drawVersion: 2,
+        finalizedAt: new Date('2026-11-20T00:00:00Z'),
+        entries: [{
+            player: { id: 8, name: 'Player One' },
+            registrationId: 31,
+            position: 1,
+            label: 'Champion',
+            points: 300,
+        }],
+    });
+});
+
+test('does not expose a leaderboard before the published draw is finalized', async () => {
+    let awardsQueried = false;
+    const repository = new PrismaTournamentDrawRepository({
+        tournamentCategory: {
+            findUnique: async () => ({ id: 3 }),
+        },
+        tournamentDraw: {
+            findFirst: async () => ({
+                id: 10,
+                version: 2,
+                finalizedAt: null,
+            }),
+        },
+        tournamentRankingPointAward: {
+            findMany: async () => {
+                awardsQueried = true;
+                return [];
+            },
+        },
+    }, new SingleEliminationGenerator());
+
+    await assert.rejects(repository.getCategoryLeaderboard(3), { statusCode: 409 });
+    assert.equal(awardsQueried, false);
+});
+
 test('rejects repeated ranking-point finalization', async () => {
     let awardsRead = false;
     const repository = new PrismaTournamentDrawRepository({

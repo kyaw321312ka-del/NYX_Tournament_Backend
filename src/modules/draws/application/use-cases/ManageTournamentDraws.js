@@ -54,6 +54,10 @@ class ManageTournamentDraws {
     listRankingPointAwards(categoryId) {
         return this.drawRepository.listRankingPointAwards(categoryId);
     }
+
+    getCategoryLeaderboard(categoryId) {
+        return this.drawRepository.getCategoryLeaderboard(categoryId);
+    }
 }
 
 module.exports = ManageTournamentDraws;

@@ -24,6 +24,11 @@ function createDrawRouter({ controller, schemas, authenticate, requireAdmin }) {
         controller.getPublishedDraw,
     );
     router.get(
+        '/tournament-categories/:categoryId/leaderboard',
+        validate(schemas.categoryIdSchema, 'params'),
+        controller.getCategoryLeaderboard,
+    );
+    router.get(
         '/admin/tournament-categories/:categoryId/eligible-registrations',
         authenticate,
         requireAdmin,

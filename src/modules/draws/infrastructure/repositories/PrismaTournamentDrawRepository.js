@@ -443,6 +443,58 @@ class PrismaTournamentDrawRepository {
         }));
     }
 
+    async getCategoryLeaderboard(tournamentCategoryId) {
+        const categoryId = Number(tournamentCategoryId);
+        const category = await this.prisma.tournamentCategory.findUnique({
+            where: { id: categoryId },
+            select: { id: true },
+        });
+        if (!category) {
+            throw new HttpError(404, 'Tournament category not found.');
+        }
+
+        const draw = await this.prisma.tournamentDraw.findFirst({
+            where: {
+                tournamentCategoryId: categoryId,
+                status: 'PUBLISHED',
+            },
+            orderBy: { version: 'desc' },
+            select: {
+                id: true,
+                version: true,
+                finalizedAt: true,
+            },
+        });
+        if (!draw || !draw.finalizedAt) {
+            throw new HttpError(409, 'The leaderboard is available after the published draw is finalized.');
+        }
+
+        const awards = await this.prisma.tournamentRankingPointAward.findMany({
+            where: {
+                tournamentCategoryId: categoryId,
+                drawId: draw.id,
+            },
+            orderBy: [{ points: 'desc' }, { position: 'asc' }, { userId: 'asc' }],
+            include: {
+                user: { select: { id: true, name: true } },
+            },
+        });
+
+        return {
+            tournamentCategoryId: categoryId,
+            drawId: draw.id,
+            drawVersion: draw.version,
+            finalizedAt: draw.finalizedAt,
+            entries: awards.map((award) => ({
+                player: { id: award.user.id, name: award.user.name },
+                registrationId: award.registrationId,
+                position: award.position,
+                label: award.label,
+                points: award.points,
+            })),
+        };
+    }
+
     async assignPositions(drawId, assignments) {
         const id = Number(drawId);
         return this.prisma.$transaction(async (transaction) => {
