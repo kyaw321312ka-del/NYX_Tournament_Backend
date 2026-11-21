@@ -33,6 +33,18 @@ and `prisma migrate deploy` before restarting Passenger via `tmp/restart.txt`.
 Production migrations must be committed to the repository;
 `prisma migrate dev` is never run by CI/CD.
 
+## Age groups
+
+For local development, seed the shared tournament age groups U10 through U20
+with:
+
+```powershell
+npm run seed:age-groups
+```
+
+This creates the groups in the format `U10` through `U20`, with maximum ages
+10 through 20. The seeder is repeatable and refuses `NODE_ENV=production`.
+
 ## Full tournament test data
 
 For local development only, first apply the committed migrations with

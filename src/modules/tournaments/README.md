@@ -79,6 +79,30 @@ file field. The `banner` field is optional. Do not manually set the multipart
 List queries accept `page` (default `1`) and `pageSize` (default `20`, maximum
 `100`). Apply migrations with `npm exec prisma -- migrate deploy`.
 
+## Age groups
+
+Age groups have public read endpoints and admin-only write endpoints:
+
+| Method | Path | Access | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/api/age-groups` | Public | List age groups, sorted by maximum age |
+| `GET` | `/api/age-groups/:id` | Public | Get one age group |
+| `POST` | `/api/age-groups` | Admin | Create an age group |
+| `PUT` | `/api/age-groups/:id` | Admin | Update name or maximum age |
+| `DELETE` | `/api/age-groups/:id` | Admin | Delete an unused age group |
+
+Create or update body:
+
+```json
+{
+  "name": "U12",
+  "age": 12
+}
+```
+
+Updates require at least one field. A name and maximum-age pair must be unique.
+An age group cannot be deleted while any tournament category references it.
+
 ## Player profile images
 
 Authenticated players can upload or replace their profile image with

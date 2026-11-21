@@ -5,6 +5,7 @@ const path = require('node:path');
 const prisma = require('./shared/database/prisma');
 const createAuthModule = require('./bootstrap/auth');
 const createTournamentModule = require('./bootstrap/tournaments');
+const createAgeGroupModule = require('./bootstrap/ageGroups');
 const createRegistrationModule = require('./bootstrap/registrations');
 const createPaymentMethodModule = require('./bootstrap/paymentMethods');
 const createPaymentModule = require('./bootstrap/payments');
@@ -19,6 +20,10 @@ const app = express();
 app.set('trust proxy', 1);
 const authModule = createAuthModule({ prisma });
 const tournamentRoutes = createTournamentModule({
+    prisma,
+    authenticate: authModule.authenticate,
+});
+const ageGroupRoutes = createAgeGroupModule({
     prisma,
     authenticate: authModule.authenticate,
 });
@@ -64,6 +69,7 @@ app.use(
 app.use('/api/auth', authModule.routes);
 app.use('/auth', authModule.routes);
 app.use('/api/tournaments', tournamentRoutes);
+app.use('/api', ageGroupRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api', paymentMethodRoutes);
 app.use('/api', paymentRoutes);
